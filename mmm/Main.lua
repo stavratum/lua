@@ -1,4 +1,4 @@
-local uwuware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')() do
+local uwuware,connected = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')(), {} do
     local Window = uwuware:CreateWindow'AFC | MMM AP'
     local Main = Window:AddFolder'Main'
     Main:AddToggle{text = 'Toggle autoplayer',flag = 'yes',state = true}
@@ -40,7 +40,6 @@ local manager = game:GetService'VirtualInputManager'
 local runservice = game:GetService'RunService'
 
 local notes = {}
-local connected = {}
 
 local _0
 _0 = hookmetamethod(game,"__newindex",
