@@ -1,6 +1,6 @@
 # MMM and FNB autoplayers
 Features:
-- Only autoplayers that work
+- Signal based
 - Undetectable by games anticheat
 - Unpatchable by developers
 
