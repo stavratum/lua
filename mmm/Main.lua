@@ -1,37 +1,35 @@
-                                                                                                                                                                                                                                                              return function(m)_G[1]=m
-local uwuware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')()
-do
-local Window = uwuware:CreateWindow'AFC | MMM AP'
-local Main = Window:AddFolder'Main'
-Main:AddToggle{text = 'Toggle autoplayer',flag = 'yes',state = true}
-Main:AddBind{text = 'Hide GUI',key = Enum.KeyCode.Quote,
-    callback = function()uwuware:Close()end
-}
-Main:AddButton{text = 'Unload script',
-    callback = function()
-        uwuware.base:Destroy()
-        for _,Function in pairs(connected) do
-            Function:Disconnect()
+local uwuware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')() do
+    local Window = uwuware:CreateWindow'AFC | MMM AP'
+    local Main = Window:AddFolder'Main'
+    Main:AddToggle{text = 'Toggle autoplayer',flag = 'yes',state = true}
+    Main:AddBind{text = 'Hide GUI',key = Enum.KeyCode.Quote,
+        callback = function()uwuware:Close()end
+    }
+    Main:AddButton{text = 'Unload script',
+        callback = function()
+            uwuware.base:Destroy()
+            for _,Function in pairs(connected) do
+                Function:Disconnect()
+            end
+            script:Destroy()
         end
-        script:Destroy()
-    end
-}
-local Credits = Window:AddFolder'Credits'
-Credits:AddButton{text = 'Copy discord invite',
-    callback = function()
-        if setclipboard then 
-            print"Discord invite is in your clipboard"
-            setclipboard"https://discord.gg/tVWz96nUu4"
-        else
-            print"Exploit doesn't support 'setclipboard'"
-            print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/tVWz96nUu4\n===================="
+    }
+    local Credits = Window:AddFolder'Credits'
+    Credits:AddButton{text = 'Copy discord invite',
+        callback = function()
+            if setclipboard then 
+                print"Discord invite is in your clipboard"
+                setclipboard"https://discord.gg/tVWz96nUu4"
+            else
+                print"Exploit doesn't support 'setclipboard'"
+                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/tVWz96nUu4\n===================="
+            end
         end
-    end
-}
-Credits:AddLabel{text = "Updated: 8/8/2022"}
-Credits:AddLabel{text = "stavratum#6591: Autoplayer"}
-Credits:AddLabel{text = "cup#7282: UI setup"}
-uwuware:Init()  
+    }
+    Credits:AddLabel{text = "Updated: 8/8/2022"}
+    Credits:AddLabel{text = "stavratum#6591: Autoplayer"}
+    Credits:AddLabel{text = "cup#7282: UI setup"}
+    uwuware:Init()  
 end
 
 local game = game
@@ -130,4 +128,3 @@ for _,v in pairs(client.PlayerGui.ScreenGui:GetChildren()) do
         
     end
 end
-                                                                                                                                                                                                                                                                                              end
