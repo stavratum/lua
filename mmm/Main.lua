@@ -1,4 +1,4 @@
-local uwuware,connected = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')(), {} do
+local uwuware, connected = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')(), {} do
     local Window = uwuware:CreateWindow'AFC | MMM AP'
     local Main = Window:AddFolder'Main'
     Main:AddToggle{text = 'Toggle autoplayer',flag = 'yes',state = true}
@@ -19,10 +19,10 @@ local uwuware,connected = loadstring(game:HttpGet'https://raw.githubusercontent.
         callback = function()
             if setclipboard then 
                 print"Discord invite is in your clipboard"
-                setclipboard"https://discord.gg/nV2YdWtDpD"
+                setclipboard"https://discord.gg/p9YNHem4JQ"
             else
                 print"Exploit doesn't support 'setclipboard'"
-                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/nV2YdWtDpD\n===================="
+                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/p9YNHem4JQ\n===================="
             end
         end
     }
