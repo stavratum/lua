@@ -19,10 +19,10 @@ local uwuware, connected = loadstring(game:HttpGet'https://raw.githubusercontent
         callback = function()
             if setclipboard then 
                 print"Discord invite is in your clipboard"
-                setclipboard"https://discord.gg/p9YNHem4JQ"
+                setclipboard"https://discord.gg/tDdyuYvXhY"
             else
                 print"Exploit doesn't support 'setclipboard'"
-                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/p9YNHem4JQ\n===================="
+                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/tDdyuYvXhY\n===================="
             end
         end
     }
