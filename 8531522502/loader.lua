@@ -1,11 +1,10 @@
 getgenv().require(v)
-    local link = ("https://raw.githubusercontent.com/stavratum/lua/main/8531522502/%s"):format(v)
-    return loadstring( game:HttpGet(link) )
+    return loadstring(game:HttpGet(("https://raw.githubusercontent.com/stavratum/lua/main/8531522502/%s"):format(v)))()
 end
 
 local function main()
-    require("setgenv.lua")()
-    require("ui.lua")()
+    require("setgenv.lua")
+    require("ui.lua")
   
     return tick()
 end
