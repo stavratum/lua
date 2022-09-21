@@ -16,7 +16,7 @@ Items =  {'Cookie', 'StrangeFruit', 'IceTea', 'FurtaSoda', 'BlueCone', 'Collar',
 
 -- ui: main
 
-require("ui/client.lua")()
-require("ui/players.lua")()
-require("ui/weapons.lua")()
-require("ui/other.lua")()
+require("ui/client.lua")
+require("ui/players.lua")
+require("ui/weapons.lua")
+require("ui/other.lua")
