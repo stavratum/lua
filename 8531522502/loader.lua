@@ -1,4 +1,4 @@
-local function require(v)
+getgenv().require(v)
     local link = ("https://raw.githubusercontent.com/stavratum/lua/main/8531522502/%s"):format(v)
     return loadstring( game:HttpGet(link) )
 end
