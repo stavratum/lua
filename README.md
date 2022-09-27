@@ -4,6 +4,6 @@ Features:
 - Undetectable by games anticheat
 - Unpatchable by developers
 
-Made by AFC (stavratum#3052 and cup#7282)
+Made by AFC (stavratum#3500 and cup#7282)
 
-Discord: https://discord.gg/4NaCGbJZU5
+Discord: https://discord.gg/DaaeeHdGur
