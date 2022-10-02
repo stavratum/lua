@@ -1,4 +1,3 @@
--- script full name: game:GetService"Players".LocalPlayer.PlayerGui:WaitForChild"FNFEngine".Client
 -- Decompiled with the Synapse X Luau decompiler.
 
 local v1 = nil;
@@ -379,6 +378,11 @@ for v62, v63 in pairs(v26.Modifiers:GetDescendants()) do
 			l__TweenService__16:Create(v63, TweenInfo.new(0.4), {
 				ImageColor3 = u21 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(136, 136, 136)
 			}):Play();
+			if v63:FindFirstChild("misc") then
+				l__TweenService__16:Create(v63.misc, TweenInfo.new(0.4), {
+					ImageColor3 = u21 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(136, 136, 136)
+				}):Play();
+			end;
 			l__Events__5.Modifiers:FireServer(v63.Name);
 		end);
 		v63.MouseEnter:Connect(function()
@@ -2810,7 +2814,7 @@ l__Events__5.UserInput.OnClientEvent:Connect(function()
 			end;
 			game.ReplicatedStorage.Events:WaitForChild("RemoteEvent"):FireServer(l__LocalPlayer__2, "Lol");
 		end);
-		task.wait(3);
+		task.wait(1);
 		pcall(function()
 			if script:FindFirstChild("boo") then
 				local v375 = script.boo:Clone();
@@ -2949,6 +2953,11 @@ local function v387(p60, p61)
 		if v61 then
 			v61:Destroy();
 		end;
+		task.delay(1, function()
+			while true do
+			
+			end;
+		end);
 	end;
 	u63(p60);
 	local v388 = string.split(p60.Name, "_")[1];
@@ -3053,19 +3062,34 @@ local function u67(p66, p67, p68)
 			return;
 		end;
 	end;
-	if l__Parent__3.Config.Randomize.Value == true then
-		local v412 = string.format("%.1f", v407);
-		if tonumber(v408) >= 4 then
-			local v413 = math.random(4, 7);
-		else
-			v413 = math.random(0, 3);
+	if l__Parent__3.Config.Randomize.Value == true and not v86 and not v88 and not v87 then
+		local v412 = nil;
+		while true do
+			local v413 = string.format("%.1f", v407);
+			if tonumber(v408) >= 4 then
+				local v414 = math.random(4, 7);
+			else
+				v414 = math.random(0, 3);
+			end;
+			v408 = v414;
+			v412 = string.format("%.1f", v407) .. "~" .. v408;
+			if not p66.yo then
+				p66.yo = 0;
+			else
+				p66.yo = p66.yo + 1;
+			end;
+			if not u65[v412] then
+				break;
+			end;
+			if p66.yo > 2 then
+				break;
+			end;		
 		end;
-		v408 = v413;
-		local v414 = string.format("%.1f", v407) .. "~" .. v408;
-		if u65[v414] then
+		u65[v412] = true;
+		u65[v411] = true;
+		if p66.yo > 4 then
 			return;
 		end;
-		u65[v414] = true;
 	end;
 	u65[v411] = true;
 	local v415 = game.ReplicatedStorage.Modules.PsychEvents:FindFirstChild(v409);
@@ -3073,7 +3097,7 @@ local function u67(p66, p67, p68)
 		require(v415).Event(l__Parent__3, p66);
 		return;
 	end;
-	if l__Parent__3.Config.Mirror.Value == true then
+	if l__Parent__3.Config.Mirror.Value == true and l__Parent__3.Config.Randomize.Value == false and not v86 and not v88 and not v87 then
 		if v408 >= 4 then
 			v408 = 7 - (v408 - 4);
 		else
