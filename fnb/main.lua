@@ -13,7 +13,7 @@ local connections = {
         end
         table.clear(self)
     end
-}
+};
 
 local Client = game:GetService"Players".LocalPlayer;
 local PlayerGui = Client.PlayerGui;
@@ -78,29 +78,29 @@ local function onChildAdded(Object)
     local ScrollSpeed = Input.ScrollSpeedChange.Value and Input.ScrollSpeed.Value or HttpService:JSONDecode( require(Song) ).song.speed;
     local Offset = Offsets[#tostring(ScrollSpeed) > 1 and string.format("%.1f", ScrollSpeed) or tostring(ScrollSpeed)] / 1000 + 0.4;
     
-    local Arrows = Object.Game[Object.PlayerSide.Value].Arrows
+    local Arrows = Object.Game[Object.PlayerSide.Value].Arrows;
     local IncomingNotes = Filter(Arrows.IncomingNotes:GetChildren(), function(v)
         return not string.find(v.Name, "|") and v or nil;
-    end )
+    end );
       
     if Song then
         PoisonNotes =
             (Song.Parent:FindFirstChild"MultiplieGimmickNotes" or Song:FindFirstChild"GimmickNotes" or
             Song.Parent:FindFirstChild"GimmickNotes" or
-            Song:FindFirstChild"MineNotes" or {} ).Value == "OnHit"
-    end
+            Song:FindFirstChild"MineNotes" or {} ).Value == "OnHit";
+    end;
     
     local Keybinds = Input.Keybinds;
     local Session = {};
     
-    if Keys[#IncomingNotes] == nil then 
+    if Keys[#IncomingNotes] == nil then -- I will delete this soooooooooooooooooooon
         print(("note count: %d"):format(#IncomingNotes))
         warn("No keys were loaded, report to owner of the script!")
-    end
+    end;
     
     for kn, kv in pairs(Keys[#IncomingNotes]) do 
         Session[kn] = Enum.KeyCode[ Keybinds[kv].Value ];
-    end
+    end;
     
     local begin = Enum.UserInputState.Begin;
     local inputFunction = GetInputFunction();
@@ -108,16 +108,16 @@ local function onChildAdded(Object)
     local wait = task.wait;
     
     for _, connection in pairs(getconnections(Object.Events.UserInput.OnClientEvent)) do 
-        connection:Disable()
-    end
+        connection:Disable();
+    end;
     
     for _, Holder in pairs(IncomingNotes) do
         connections:add(Holder.ChildAdded, function(Arrow)
-            if Arrow.HellNote.Value and PoisonNotes or IsOnHit(Arrow:FindFirstChildOfClass"ModuleScript") or not Arrow.Visible then return end
-            local Input = Session[Holder.Name]
+            if (Arrow.HellNote.Value) and (PoisonNotes) or IsOnHit(Arrow:FindFirstChildOfClass"ModuleScript") or (not Arrow.Visible) then return; end;
+            local Input = Session[Holder.Name];
           
             wait(Offset + uwuware.flags.ms / 1000);
-            if not uwuware.flags.hello then return end
+            if not uwuware.flags.hello then return; end;
             
             if (uwuware.flags.FireDirectly) then 
                 set_identity(2);
@@ -128,7 +128,7 @@ local function onChildAdded(Object)
               
                 local Bar = Arrow.Frame.Bar;
                 while Bar.Size.Y.Scale >= 0.6 do
-                    task.wait();
+                    wait();
                 end
               
                 spawn(inputFunction, { KeyCode = Input });
@@ -137,20 +137,20 @@ local function onChildAdded(Object)
                 VirtualInputManager:SendKeyEvent(true, Input, false, nil);
                 local Bar = Arrow.Frame.Bar;
                 while Bar.Size.Y.Scale >= 0.6 do
-                    task.wait();
+                    wait();
                 end
                 VirtualInputManager:SendKeyEvent(false, Input, false, nil);
-            end
+            end;
         end )
     end
-end
+end;
 
 uwuware = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/fnb/uwuware.lua")() do
     local Window = uwuware:CreateWindow "Friday Night Bloxxin'";
     Window:AddSlider { text = "Offset (ms)", flag = "ms", min = -50, max = 50, value = 0 };
     Window:AddToggle { text = "Toggle Autoplayer", flag = "hello", state = true };
     Window:AddToggle { text = "Fire Signals Directly", flag = "FireDirectly", state = true };
-    Window:AddBind { text = "Close GUI", key = Enum.KeyCode.Quote, callback = function() uwuware:Close(); end }
+    Window:AddBind { text = "Close GUI", key = Enum.KeyCode.Quote, callback = function() uwuware:Close(); end };
     Window:AddButton({
         text = "Unload Script",
         callback = function()
@@ -158,9 +158,9 @@ uwuware = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lu
             connections:disconnect();
             uwuware.base:Destroy();
         end
-    })
-    Window:AddButton { text = "Copy Discord Invite", callback = function() (setclipboard or print)(Discord) end }
-end
+    });
+    Window:AddButton { text = "Copy Discord Invite", callback = function() (setclipboard or print)(Discord) end };
+end;
 
 connections:add(PlayerGui.ChildAdded, onChildAdded);
 task.spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine");
