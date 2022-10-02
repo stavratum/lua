@@ -16,10 +16,9 @@ local connections = {
 };
 
 local Client = game:GetService"Players".LocalPlayer;
-local PlayerGui = Client.PlayerGui;
 local Input = Client:WaitForChild"Input";
+local PlayerGui = Client.PlayerGui;
 
-local uwuware;
 local Offsets = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/fnb/offsets.lua")();
 local Discord = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/Discord.lua")();
 local Keys = {
@@ -35,9 +34,9 @@ local VirtualInputManager = game:GetService "VirtualInputManager"; -- for input 
 local InputService = game:GetService "UserInputService"; -- for input sending
 local HttpService = game:GetService "HttpService"; -- for JSON decoding
 
-local genv = getgenv();
-local task = genv.task;
-local type = type;
+local uwuware = nil;
+local task    = task;
+local type    = type;
 
 local function onChildAdded(Object)
     if (not Object) then return end;
@@ -121,6 +120,7 @@ local function onChildAdded(Object)
             
             if (uwuware.flags.FireDirectly) then 
                 set_identity(2);
+                    
                 spawn(inputFunction, {
                     KeyCode = Input,
                     UserInputState = begin
@@ -132,7 +132,6 @@ local function onChildAdded(Object)
                 end
               
                 spawn(inputFunction, { KeyCode = Input });
-                set_identity(7);
             else
                 VirtualInputManager:SendKeyEvent(true, Input, false, nil);
                 local Bar = Arrow.Frame.Bar;
