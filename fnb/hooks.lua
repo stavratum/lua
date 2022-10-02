@@ -56,7 +56,7 @@ if not getgenv().IsAnimeFan then
     __newindex = hookmetamethod(game, "__newindex", function(...)
         local index = ({...})[2];
         
-        if (getcallingscript().Name == "Client") and (index == "Health") then
+        if (index == "Health") and (not checkcaller()) and (getcallingscript().Name == "Client") then
             return;
         end;
         
@@ -65,7 +65,7 @@ if not getgenv().IsAnimeFan then
     
     __index = hookmetamethod(game, "__index", function(table, index)
         
-        if (table == game and index == service) then
+        if (not checkcaller()) and (table == game) and (index == service) then
             created = true;
         end
         
