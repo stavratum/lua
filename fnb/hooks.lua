@@ -13,7 +13,6 @@ local task             = task;
 
 if not getgenv().IsAnimeFan then
     local creating_methods = { ["getService"] = true, ["GetService"] = true };
-    local yielding_methods = { ["waitForChild"] = true, ["WaitForChild"] = true }
     local indexing_methods = {
         ["FindService"] = true,
         ["findService"] = true,
@@ -44,33 +43,6 @@ if not getgenv().IsAnimeFan then
                 
             if indexing_methods[ method ] and not created then
                 return nil;
-            end
-            
-            if yielding_methods[ method ] and not created then 
-                local thread = coroutine.running();
-                local signal;
-                
-                if type(args[2]) == "number" then 
-                    task.delay(args[2], function()
-                        if coroutine.status(thread) == "suspended" then
-                            signal:Disconnect();
-                            coroutine.resume(thread);
-                        end;
-                        
-                        return
-                    end )
-                end
-                
-                signal = self.ChildAdded:Connect( function(Object)
-                    if (Object.Name == args[1]) and (created) then
-                        signal:Disconnect();
-                        if coroutine.status(thread) == "suspended" then
-                            coroutine.resume(thread, Object)
-                        end;
-                    end;
-                end );
-                
-                return coroutine.yield();
             end;
             
             if creating_methods[ method ] then
@@ -84,7 +56,7 @@ if not getgenv().IsAnimeFan then
     __newindex = hookmetamethod(game, "__newindex", function(...)
         local index = ({...})[2];
         
-        if getcallingscript().Name == "Client" and index == "Health" then
+        if (getcallingscript().Name == "Client") and (index == "Health") then
             return;
         end;
         
@@ -124,44 +96,6 @@ if not getgenv().IsAnimeFan then
             
             return creating_methods[method](self, ...);
         end );
-    end;
-    
-    for method, v in pairs(yielding_methods) do
-        yielding_methods[method] = hookfunction(game[method], function(self, ...)
-            local args = {...};
-            
-            if (self == game) and (args[1] == service) and (not created) then
-                local thread = coroutine.running();
-                local signal;
-                
-                if args[2] then
-                    task.delay(args[2], function()
-                        if coroutine.status(thread) == "suspended" then
-                            if signal.Connected then 
-                                signal:Disconnect();
-                            end;
-                            
-                            coroutine.resume(thread);
-                        end;
-                        
-                        return;
-                    end );
-                    
-                    coroutine.yield(thread);
-                end;
-                
-                signal = self.ChildAdded:Connect( function(Object)
-                    if (Object.Name == args[1]) and (created) then
-                        signal:Disconnect();
-                        if coroutine.status(thread) == "suspended" then
-                            coroutine.resume(thread, Object)
-                        end;
-                    end;
-                end );
-            end;
-            
-            return yielding_methods[method](self, ...)
-        end )
     end;
     
     --
