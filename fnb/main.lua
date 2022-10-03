@@ -75,7 +75,7 @@ local function onChildAdded(Object)
     local PoisonNotes;
     
     local ScrollSpeed = Input.ScrollSpeedChange.Value and Input.ScrollSpeed.Value or HttpService:JSONDecode( require(Song) ).song.speed;
-    local Offset = Offsets[#tostring(ScrollSpeed) > 1 and string.format("%.1f", ScrollSpeed) or tostring(ScrollSpeed)] / 1000 + 0.4;
+    local Offset = Offsets[string.format("%.1f", ScrollSpeed)] / 1000 + 0.4;
     
     local Arrows = Object.Game[Object.PlayerSide.Value].Arrows;
     local IncomingNotes = Filter(Arrows.IncomingNotes:GetChildren(), function(v)
