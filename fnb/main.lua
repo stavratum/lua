@@ -9,7 +9,9 @@ local connections = {
   
     disconnect = function(self)
         for i,v in pairs(self) do
-            if type(v) ~= "function" then v:Disconnect() end
+            if type(v) == "userdata" and v.Connected then
+                v:Disconnect()
+            end
         end
         table.clear(self)
     end
