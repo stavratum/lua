@@ -43,7 +43,7 @@ function connections:Destroy()
         end
         
         table.clear(thread)
-        self.Thread[index] = nil
+        self.Threads[index] = nil
     end
 end
 
