@@ -5,7 +5,7 @@ function connections:Open(kv)
     
     local Thread = {}
     
-    function Thread:Add(Signal, OnFire)
+    function Thread:Insert(Signal, OnFire)
         self[index] = Signal:Connect(OnFire)
     end
     
@@ -31,7 +31,7 @@ function connections:Open(kv)
         end
     end
     
-    return setmetatable(self.Threads[ kv or (#Threads + 1) ], { __index = __index })
+    return setmetatable(self.Threads[ kv or (#Threads + 1) ], { __index = Thread })
 end
 
 function connections:Destroy()
