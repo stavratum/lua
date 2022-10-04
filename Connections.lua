@@ -38,6 +38,7 @@ function connections:Destroy()
             connection:Disconnect()
         end
         
+        table.clear(thread)
         table.remove(self.Threads, index)
     end
 end
