@@ -33,9 +33,14 @@ local function getSong(module)
     return HttpService:JSONDecode( require(module) ).song
 end
 
+local function generateGUID()
+    return HttpService:GenerateGUID(false)
+end
+
 --
 
 return {
+    generateGUID = generateGUID,
     getSong = getSong,
     filter = filter,
     parse = parse
