@@ -1,4 +1,4 @@
--- stavratum.github.io
+-- grrr nya
 
 local function require(s)
     return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
