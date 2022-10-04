@@ -1,4 +1,4 @@
--- thanks to MarsRon and his amazing project "owofier"
+-- thanks to MarsRon for his amazing project called "owofier"
 -- https://github.com/MarsRon/
 
 -- owofier: https://github.com/MarsRon/owofire/blob/master/index.js
@@ -26,7 +26,7 @@ local function owofire(input)
             ["nd\b"] = "ndo",
             ["z\b"] = "z~",
             ["!"] = "! " .. getFace(),
-            ["\?"] = "? " .. getFace(),
+            ["?"] = "? " .. getFace(),
             ["the"] = "da",
             ["this"] = "dis",
             ["with"] = "wif",
