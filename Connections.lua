@@ -6,7 +6,7 @@ function connections:Open(kv)
     local Thread = {}
     
     function Thread:Insert(Signal, OnFire)
-        self[index] = Signal:Connect(OnFire)
+        self[#self + 1] = Signal:Connect(OnFire)
     end
     
     function Thread:Close()
