@@ -29,9 +29,14 @@ local function filter(iter, method)
     return returns
 end
 
+local function getSong(module)
+    return HttpService:JSONDecode( require(module) ).song
+end
 
+--
 
 return {
+    getSong = getSong,
     filter = filter,
     parse = parse
 }
