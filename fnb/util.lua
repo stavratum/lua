@@ -1,6 +1,14 @@
 local Keybinds = game:GetService"Players".LocalPlayer.Input.Keybinds
 local HttpService = game:GetService"HttpService"
 local KeyCode = Enum.KeyCode
+local Keys = {
+    [4] = { Left = "Left", Down = "Down", Up = "Up", Right = "Right" },
+    [5] = { Left = "Left", Down = "Down", Space = "Space", Up = "Up", Right = "Right" },
+    [6] = { S = "R3", D = "R2", F = "R1", J = "L1", K = "L2", L = "L3" },
+    [7] = { S = "R3", D = "R2", F = "R1", Space = "Space", J = "L1", K = "L2", L = "L3" },
+    [8] = { A = "L4", S = "L3", D = "L2", F = "L1", H = "R1", J = "R2", K = "R3", L = "R4" },
+    [9] = { A = "L4", S = "L3", D = "L2", Space = "Space", F = "L1", H = "R1", J = "R2", K = "R3", L = "R4" }
+}
 
 local function parse(u23)
     local v395 = {};
@@ -39,8 +47,8 @@ local function generateGUID()
     return HttpService:GenerateGUID(false)
 end
 
-local function getKeycode(str)
-    return KeyCode[ Keybinds[str].Value ]
+local function getKeycode(str, len)
+    return KeyCode[ Keybinds[ Keys[len] ].Value ]
 end
 
 --
