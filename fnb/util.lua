@@ -1,4 +1,6 @@
+local Keybinds = game:GetService"Players".LocalPlayer.Input.Keybinds
 local HttpService = game:GetService"HttpService"
+local KeyCode = Enum.KeyCode
 
 local function parse(u23)
     local v395 = {};
@@ -37,10 +39,15 @@ local function generateGUID()
     return HttpService:GenerateGUID(false)
 end
 
+local function getKeycode(str)
+    return KeyCode[ Keybinds[str].Value ]
+end
+
 --
 
 return {
     generateGUID = generateGUID,
+    getKeycode = getKeycode,
     getSong = getSong,
     filter = filter,
     parse = parse
