@@ -48,7 +48,7 @@ local function generateGUID()
 end
 
 local function getKeycode(str, len)
-    return KeyCode[ Keybinds[ Keys[len] ].Value ]
+    return KeyCode[ Keybinds[ Keys[len][str] ].Value ]
 end
 
 --
