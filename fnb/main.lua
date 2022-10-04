@@ -99,10 +99,14 @@ local function onChildAdded(Object)
         end
         
         --
+    
+        local mustHit
         
         if (not Key or Key:find"|") then close() end
-            
-        local mustHit = Note[2].mustHitSection
+        if type(Note[2]) ~= "table" then close() else
+            mustHit = Note[2].mustHitSection
+        end
+        
         local Arrow = PoisonNotes and PoisonNotes:FindFirstChild(Key:split"_"[2] or Key:split"_"[1])
         Arrow = Arrow and require(Arrow.ModuleScript)
         
