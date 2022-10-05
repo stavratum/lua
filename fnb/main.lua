@@ -160,8 +160,6 @@ local function onChildAdded(Object)
         end
         
         TEMP:Insert(RunService.RenderStepped, Update)
-        TEMP:Insert(RunService.Stepped, Update)
-        TEMP:Insert(RunService.Heartbeat, Update)
     end
     
 end
