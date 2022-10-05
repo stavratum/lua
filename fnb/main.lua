@@ -66,6 +66,10 @@ local function onChildAdded(Object)
     while (not Stage.Config.Song.Value) do
         TimePast.Changed:Wait()
     end
+
+    while not require(Object.Modules.Functions).notetypeconvert do
+        TimePast.Changed:Wait()
+    end
     
     Song = Stage.Config.Song.Value
     SongData = Util.getSong(Song)
