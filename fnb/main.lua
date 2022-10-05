@@ -40,7 +40,7 @@ local TEMP = Connections:Open("TEMP")
 
 local function onChildAdded(Object)
     if (not Object) then return end
-    if (#Object:GetDescendants() < 50) then return end
+    if (#Object:GetDescendants() < 100) then return end
     
     TEMP:Clear()
     
