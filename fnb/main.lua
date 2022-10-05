@@ -124,7 +124,7 @@ local function onChildAdded(Object)
     for i,v in pairs(Chart) do
         IncomingNotes[v.Key] = (IncomingNotes[v.Key] or {})
         if v.At > TimePast.Value * 1000 then 
-            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 1, tonumber(v.Length) and (v.Length / 1000) or 0 }
+            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 10, tonumber(v.Length) and (v.Length / 1000) or 0 }
         end
     end
     
