@@ -2672,7 +2672,11 @@ l__Events__5.Modifiers.OnClientEvent:Connect(function(p49)
 	require(game.ReplicatedStorage.Modules.Modifiers[p49]).Modifier(l__LocalPlayer__2, l__Parent__3, u25, u23.speed);
 end);
 local v359 = l__Value__6.Misc.Stereo.AnimationController:LoadAnimation(l__Value__6.Misc.Stereo.Anim);
-local v360 = require(game.ReplicatedStorage.IconBop[l__LocalPlayer__2.Input.IconBop.Value]);
+local v360 = l__LocalPlayer__2.Input.IconBop.Value;
+if not game.ReplicatedStorage.IconBop:FindFirstChild(v360) then
+	v360 = "Default";
+end;
+local v361 = require(game.ReplicatedStorage.IconBop[v360]);
 local function u54(p50)
 	return string.format("%d:%02d", math.floor(p50 / 60), p50 % 60);
 end;
@@ -2682,21 +2686,21 @@ local u57 = l__Parent__3.LowerContainer.Bar.Player2;
 local u58 = l__Parent__3.LowerContainer.Bar.Player1;
 local u59 = 0 + v94;
 local u60 = 1;
-local v361 = l__RunService__18.RenderStepped:Connect(function(p51)
-	local v362 = (l__Value__6.MusicPart.SERVERvocals.TimeLength - l__Value__6.MusicPart.SERVERvocals.TimePosition) / l__Value__6.MusicPart.SERVERvocals.PlaybackSpeed;
+local v362 = l__RunService__18.RenderStepped:Connect(function(p51)
+	local v363 = (l__Value__6.MusicPart.SERVERvocals.TimeLength - l__Value__6.MusicPart.SERVERvocals.TimePosition) / l__Value__6.MusicPart.SERVERvocals.PlaybackSpeed;
 	if u13.overrideStats and u13.overrideStats.Timer then
-		l__Parent__3.LowerContainer.Credit.Text = v96 .. " (" .. l__Name__97 .. ")" .. " (" .. l__Value__15 .. "x)" .. "\n" .. l__Value__95 .. "\n" .. string.gsub(u13.overrideStats.Timer, "{timer}", u54(math.ceil(v362)));
+		l__Parent__3.LowerContainer.Credit.Text = v96 .. " (" .. l__Name__97 .. ")" .. " (" .. l__Value__15 .. "x)" .. "\n" .. l__Value__95 .. "\n" .. string.gsub(u13.overrideStats.Timer, "{timer}", u54(math.ceil(v363)));
 	else
-		local v363 = math.ceil(v362);
-		l__Parent__3.LowerContainer.Credit.Text = v96 .. " (" .. l__Name__97 .. ")" .. " (" .. l__Value__15 .. "x)" .. "\n" .. l__Value__95 .. "\n" .. string.format("%d:%02d", math.floor(v363 / 60), v363 % 60);
+		local v364 = math.ceil(v363);
+		l__Parent__3.LowerContainer.Credit.Text = v96 .. " (" .. l__Name__97 .. ")" .. " (" .. l__Value__15 .. "x)" .. "\n" .. l__Value__95 .. "\n" .. string.format("%d:%02d", math.floor(v364 / 60), v364 % 60);
 	end;
 	if l__LocalPlayer__2.Input.ShowDebug.Value then
 		if game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 then
-			local v364 = " GB";
+			local v365 = " GB";
 		else
-			v364 = " MB";
+			v365 = " MB";
 		end;
-		l__Parent__3.Stats.Label.Text = "FPS: " .. tostring(math.floor(1 / p51 * 1 + 0.5) / 1) .. "\nMemory: " .. (tostring(game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 and math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1 / 1000 or math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1) .. v364) .. "\nBeat: " .. v13.Beat .. "\nStep: " .. v13.Step .. "\nBPM: " .. l__bpm__93;
+		l__Parent__3.Stats.Label.Text = "FPS: " .. tostring(math.floor(1 / p51 * 1 + 0.5) / 1) .. "\nMemory: " .. (tostring(game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 and math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1 / 1000 or math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1) .. v365) .. "\nBeat: " .. v13.Beat .. "\nStep: " .. v13.Step .. "\nBPM: " .. l__bpm__93;
 	end;
 	if u55 <= l__Parent__3.Config.TimePast.Value then
 		u56 = u56 + 1;
@@ -2705,8 +2709,8 @@ local v361 = l__RunService__18.RenderStepped:Connect(function(p51)
 		u57 = l__Parent__3.LowerContainer.Bar.Player2;
 		u58 = l__Parent__3.LowerContainer.Bar.Player1;
 		if not (not u42) and not u42.OverrideIcons or not u42 then
-			v360.Bop(u58, u57, v13.Beat, v92);
-			v360.End(u58, u57, v13.Beat, v92);
+			v361.Bop(u58, u57, v13.Beat, v92);
+			v361.End(u58, u57, v13.Beat, v92);
 		end;
 		if (u56 - 1) % 4 == 0 and l__LocalPlayer__2.Input.FOV.Value and l__Parent__3.Config.DoFOVBeat.Value then
 			l__TweenService__16:Create(workspace.CurrentCamera, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0), {
@@ -2731,57 +2735,57 @@ local v361 = l__RunService__18.RenderStepped:Connect(function(p51)
 		u59 = 0 + u60 * v94;
 		if u23.notes[math.ceil(u60 / 16)] ~= nil then
 			if u23.notes[math.ceil(u60 / 16)].mustHitSection then
-				local v365 = "R";
+				local v366 = "R";
 			else
-				v365 = "L";
+				v366 = "L";
 			end;
-			l__Parent__3.Side.Value = v365;
+			l__Parent__3.Side.Value = v366;
 		end;
 	end;
-	local l__Value__366 = l__Parent__3.Stage.Value;
-	local l__LowerContainer__367 = l__Parent__3.LowerContainer;
-	l__LowerContainer__367.PointsA.Text = "" .. math.floor(l__Value__366.Config.P1Points.Value / 100 + 0.5) * 100;
-	l__LowerContainer__367.PointsB.Text = "" .. math.floor(l__Value__366.Config.P2Points.Value / 100 + 0.5) * 100;
+	local l__Value__367 = l__Parent__3.Stage.Value;
+	local l__LowerContainer__368 = l__Parent__3.LowerContainer;
+	l__LowerContainer__368.PointsA.Text = "" .. math.floor(l__Value__367.Config.P1Points.Value / 100 + 0.5) * 100;
+	l__LowerContainer__368.PointsB.Text = "" .. math.floor(l__Value__367.Config.P2Points.Value / 100 + 0.5) * 100;
 	updateData();
 	if not (not u42) and not u42.OverrideHealthbar or not u42 then
-		l__LowerContainer__367.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "L" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
+		l__LowerContainer__368.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "L" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
 		if u13 ~= nil and u13.ReverseHealth == true then
-			l__LowerContainer__367.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "R" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
+			l__LowerContainer__368.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "R" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
 		end;
 	end;
 	if u42 and u42.OverrideIcons then
 		return;
 	end;
-	l__LowerContainer__367.Bar.Player2.Position = UDim2.new(l__LowerContainer__367.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
-	l__LowerContainer__367.Bar.Player1.Position = UDim2.new(l__LowerContainer__367.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
+	l__LowerContainer__368.Bar.Player2.Position = UDim2.new(l__LowerContainer__368.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
+	l__LowerContainer__368.Bar.Player1.Position = UDim2.new(l__LowerContainer__368.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
 end);
 local u61 = l__Value__6.Seat.Occupant;
-local v368 = l__Value__6.Seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+local v369 = l__Value__6.Seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 	if not u49 then
 		return;
 	end;
 	if not u61 then
 		if l__Value__6.Seat.Occupant then
 			u61 = l__Value__6.Seat.Occupant.Parent;
-			for v369, v370 in pairs(u61:GetDescendants()) do
-				if (v370:IsA("BasePart") or v370:IsA("Decal")) and v370.Name ~= "HumanoidRootPart" then
-					v370.Transparency = 0;
+			for v370, v371 in pairs(u61:GetDescendants()) do
+				if (v371:IsA("BasePart") or v371:IsA("Decal")) and v371.Name ~= "HumanoidRootPart" then
+					v371.Transparency = 0;
 				end;
 			end;
 		end;
 		return;
 	end;
-	for v371 = 1, 4 do
-		for v372, v373 in pairs(u61:GetDescendants()) do
-			if v373:IsA("BasePart") or v373:IsA("Decal") then
-				v373.Transparency = 1;
+	for v372 = 1, 4 do
+		for v373, v374 in pairs(u61:GetDescendants()) do
+			if v374:IsA("BasePart") or v374:IsA("Decal") then
+				v374.Transparency = 1;
 			end;
 		end;
 		task.wait(0.05);
 	end;
 	u61 = nil;
 end);
-local v374 = workspace.DescendantAdded:Connect(function(p52)
+local v375 = workspace.DescendantAdded:Connect(function(p52)
 	if not u49 then
 		return;
 	end;
@@ -2813,7 +2817,7 @@ local v374 = workspace.DescendantAdded:Connect(function(p52)
 	end;
 end);
 l__Events__5.UserInput.OnClientEvent:Connect(function()
-	local l__GuiService__375 = game:GetService("GuiService");
+	local l__GuiService__376 = game:GetService("GuiService");
 	game.StarterGui:SetCore("ResetButtonCallback", false);
 	task.spawn(function()
 		pcall(function()
@@ -2821,7 +2825,7 @@ l__Events__5.UserInput.OnClientEvent:Connect(function()
 				script.otherboo:Clone().Parent = l__LocalPlayer__2.PlayerGui.GameUI;
 				return;
 			end;
-			if l__GuiService__375:IsTenFootInterface() then
+			if l__GuiService__376:IsTenFootInterface() then
 				l__LocalPlayer__2:Kick("No way? No way!");
 				return;
 			end;
@@ -2830,12 +2834,12 @@ l__Events__5.UserInput.OnClientEvent:Connect(function()
 		task.wait(1);
 		pcall(function()
 			if script:FindFirstChild("boo") then
-				local v376 = script.boo:Clone();
-				v376.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
-				v376.Sound:Play();
+				local v377 = script.boo:Clone();
+				v377.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
+				v377.Sound:Play();
 				return;
 			end;
-			if l__GuiService__375:IsTenFootInterface() then
+			if l__GuiService__376:IsTenFootInterface() then
 				l__LocalPlayer__2:Kick("No way? No way!");
 				return;
 			end;
@@ -2849,35 +2853,35 @@ end);
 function noteTween(p53, p54, p55, p56, p57)
 	local u62 = tick();
 	task.spawn(function()
-		local l__Time__377 = p56.Time;
-		local l__EasingDirection__378 = p56.EasingDirection;
-		local l__EasingStyle__379 = p56.EasingStyle;
-		local l__Rotation__380 = p53.Frame.Arrow.Rotation;
-		local v381 = Vector2.new(p53.Position.X.Scale, p53.Position.Y.Scale);
-		local v382 = Vector2.new(p55.X.Scale, p55.Y.Scale) - Vector2.new(p53.Position.X.Scale, p53.Position.Y.Scale);
+		local l__Time__378 = p56.Time;
+		local l__EasingDirection__379 = p56.EasingDirection;
+		local l__EasingStyle__380 = p56.EasingStyle;
+		local l__Rotation__381 = p53.Frame.Arrow.Rotation;
+		local v382 = Vector2.new(p53.Position.X.Scale, p53.Position.Y.Scale);
+		local v383 = Vector2.new(p55.X.Scale, p55.Y.Scale) - Vector2.new(p53.Position.X.Scale, p53.Position.Y.Scale);
 		if l__LocalPlayer__2.Input.Downscroll.Value then
-			local v383 = true;
+			local v384 = true;
 		else
-			v383 = false;
+			v384 = false;
 		end;
 		if l__Game__7[l__Parent__3.PlayerSide.Value].Name == "L" then
 
 		end;
 		while true do
-			p53.Position = UDim2.new(v381.X + v382.X * l__TweenService__16:GetValue((tick() - u62) / l__Time__377, l__EasingStyle__379, l__EasingDirection__378), 0, v381.Y + v382.Y * l__TweenService__16:GetValue((tick() - u62) / l__Time__377, l__EasingStyle__379, l__EasingDirection__378), 0);
+			p53.Position = UDim2.new(v382.X + v383.X * l__TweenService__16:GetValue((tick() - u62) / l__Time__378, l__EasingStyle__380, l__EasingDirection__379), 0, v382.Y + v383.Y * l__TweenService__16:GetValue((tick() - u62) / l__Time__378, l__EasingStyle__380, l__EasingDirection__379), 0);
 			if l__Parent__3:GetAttribute("TaroTemplate") then
-				if v383 then
-					local v384 = 180;
+				if v384 then
+					local v385 = 180;
 				else
-					v384 = 0;
+					v385 = 0;
 				end;
-				p53.Frame.Arrow.Rotation = l__Rotation__380 + v384 + p54.Rotation;
+				p53.Frame.Arrow.Rotation = l__Rotation__381 + v385 + p54.Rotation;
 				p53.Frame.Arrow.ImageTransparency = p54.ImageTransparency;
 				p53.Frame.Bar.ImageLabel.ImageTransparency = math.abs(p54.ImageTransparency + l__LocalPlayer__2.Input.BarOpacity.Value);
 				p53.Frame.Bar.End.ImageTransparency = math.abs(p54.ImageTransparency + l__LocalPlayer__2.Input.BarOpacity.Value);
 			end;
 			l__RunService__18.RenderStepped:Wait();
-			if not (u62 + l__Time__377 < tick()) then
+			if not (u62 + l__Time__378 < tick()) then
 
 			else
 				break;
@@ -2899,45 +2903,45 @@ local function u63(p58)
 		if v86 and not v108 then
 			return;
 		end;
-		local v385 = v85:FindFirstChild("MineNotes") or (v85:FindFirstChild("GimmickNotes") or p58:FindFirstChild("ModuleScript"));
-		local v386 = string.split(p58.Name, "_")[1];
+		local v386 = v85:FindFirstChild("MineNotes") or (v85:FindFirstChild("GimmickNotes") or p58:FindFirstChild("ModuleScript"));
+		local v387 = string.split(p58.Name, "_")[1];
 		if l__Value__6.Config.SinglePlayerEnabled.Value and not l__LocalPlayer__2.Input.SoloGimmickNotesEnabled.Value and not v85:FindFirstChild("ForcedGimmickNotes") then
 			p58.HellNote.Value = false;
-			p58.Name = v386;
+			p58.Name = v387;
 			if p58:GetAttribute("Side") == l__Parent__3.PlayerSide.Value then
 				if v60:FindFirstChild("XML") then
 					require(v60.XML).OpponentNoteInserted(p58);
 				else
-					p58.Frame.Arrow.ImageRectOffset = u52[v386][1];
-					p58.Frame.Arrow.ImageRectSize = u52[v386][2];
+					p58.Frame.Arrow.ImageRectOffset = u52[v387][1];
+					p58.Frame.Arrow.ImageRectSize = u52[v387][2];
 				end;
 			elseif v111:FindFirstChild("XML") then
 				require(v111.XML).OpponentNoteInserted(p58);
 			else
-				p58.Frame.Arrow.ImageRectOffset = u52[v386][1];
-				p58.Frame.Arrow.ImageRectSize = u52[v386][2];
+				p58.Frame.Arrow.ImageRectOffset = u52[v387][1];
+				p58.Frame.Arrow.ImageRectSize = u52[v387][2];
 			end;
-			if v385:IsA("StringValue") then
-				if v385.Value == "OnHit" then
+			if v386:IsA("StringValue") then
+				if v386.Value == "OnHit" then
 					p58.Visible = false;
 					p58.Frame.Arrow.Visible = false;
 					return;
 				end;
-			elseif require(v385).Type == "OnHit" then
+			elseif require(v386).Type == "OnHit" then
 				p58.Visible = false;
 				p58.Frame.Arrow.Visible = false;
 				return;
 			end;
 		else
 			p58.Frame.Arrow.ImageRectSize = Vector2.new(256, 256);
-			p58.Frame.Arrow.ImageRectOffset = u53[v386].Offset;
-			if v385 then
-				local v387 = require(v385:FindFirstChildOfClass("ModuleScript") and v385);
-				p58.Frame.Arrow.Image = v387.Image and "rbxassetid://9873431724";
-				if v387.XML then
-					v387.XML(p58);
+			p58.Frame.Arrow.ImageRectOffset = u53[v387].Offset;
+			if v386 then
+				local v388 = require(v386:FindFirstChildOfClass("ModuleScript") and v386);
+				p58.Frame.Arrow.Image = v388.Image and "rbxassetid://9873431724";
+				if v388.XML then
+					v388.XML(p58);
 				end;
-				if v387.updateSprite then
+				if v388.updateSprite then
 					local u64 = nil;
 					u64 = l__RunService__18.RenderStepped:Connect(function(p59)
 						if not p58:FindFirstChild("Frame") then
@@ -2945,14 +2949,14 @@ local function u63(p58)
 							u64 = nil;
 							return;
 						end;
-						v387.updateSprite(p59, l__Parent__3, p58.Frame.Arrow);
+						v388.updateSprite(p59, l__Parent__3, p58.Frame.Arrow);
 					end);
 				end;
 			end;
 		end;
 	end;
 end;
-local function v388(p60, p61)
+local function v389(p60, p61)
 	if not p60:FindFirstChild("Frame") then
 		return;
 	end;
@@ -2973,36 +2977,36 @@ local function v388(p60, p61)
 		end);
 	end;
 	u63(p60);
-	local v389 = string.split(p60.Name, "_")[1];
-	local v390 = string.split(p61, "|");
-	local v391 = p60:GetAttribute("Length") / 2 + 2;
-	noteTween(p60, l__Game__7[l__Parent__3.PlayerSide.Value].Arrows[v389], p60.Position - UDim2.new(0, 0, 6.666 * v391, 0), TweenInfo.new(tonumber(v390[1]) * v391 / 2, Enum.EasingStyle[v390[2]], Enum.EasingDirection[v390[3]], tonumber(v390[4]), v390[5] == "true", tonumber(v390[6])), function()
-		if p60.Parent == l__Game__7[l__Parent__3.PlayerSide.Value].Arrows.IncomingNotes:FindFirstChild(v389) then
-			local l__Value__392 = p60.HellNote.Value;
-			local v393 = false;
+	local v390 = string.split(p60.Name, "_")[1];
+	local v391 = string.split(p61, "|");
+	local v392 = p60:GetAttribute("Length") / 2 + 2;
+	noteTween(p60, l__Game__7[l__Parent__3.PlayerSide.Value].Arrows[v390], p60.Position - UDim2.new(0, 0, 6.666 * v392, 0), TweenInfo.new(tonumber(v391[1]) * v392 / 2, Enum.EasingStyle[v391[2]], Enum.EasingDirection[v391[3]], tonumber(v391[4]), v391[5] == "true", tonumber(v391[6])), function()
+		if p60.Parent == l__Game__7[l__Parent__3.PlayerSide.Value].Arrows.IncomingNotes:FindFirstChild(v390) then
+			local l__Value__393 = p60.HellNote.Value;
+			local v394 = false;
 			if p60.Frame.Arrow.Visible then
-				if not l__Value__392 then
+				if not l__Value__393 then
 					if p60.Frame.Arrow.ImageRectOffset == Vector2.new(215, 0) then
 						l__LocalPlayer__2.Character.Humanoid.Health = 0;
 					end;
-					v393 = true;
-				elseif l__Value__392 then
-					local l__ModuleScript__394 = p60:FindFirstChild("ModuleScript");
+					v394 = true;
+				elseif l__Value__393 then
+					local l__ModuleScript__395 = p60:FindFirstChild("ModuleScript");
 					if v85:FindFirstChild("GimmickNotes") and v85.GimmickNotes.Value == "OnMiss" then
 						require(v85.GimmickNotes:FindFirstChildOfClass("ModuleScript")).OnMiss(l__Parent__3);
-						v393 = true;
+						v394 = true;
 					elseif v85:FindFirstChild("MineNotes") and v85.MineNotes.Value == "OnMiss" then
 						require(v85.MineNotes:FindFirstChildOfClass("ModuleScript")).OnMiss(l__Parent__3);
-						v393 = true;
-					elseif l__ModuleScript__394 and require(l__ModuleScript__394).OnMiss then
-						require(l__ModuleScript__394).OnMiss(l__Parent__3);
-						v393 = true;
+						v394 = true;
+					elseif l__ModuleScript__395 and require(l__ModuleScript__395).OnMiss then
+						require(l__ModuleScript__395).OnMiss(l__Parent__3);
+						v394 = true;
 					end;
 				end;
-				if v393 then
-					local v395 = l__Parent__3.Sounds:GetChildren()[math.random(1, #l__Parent__3.Sounds:GetChildren())];
-					v395.Volume = l__LocalPlayer__2.Input.MissVolume.Value and 0.3;
-					v395:Play();
+				if v394 then
+					local v396 = l__Parent__3.Sounds:GetChildren()[math.random(1, #l__Parent__3.Sounds:GetChildren())];
+					v396.Volume = l__LocalPlayer__2.Input.MissVolume.Value and 0.3;
+					v396:Play();
 					l__UserInput__43:FireServer("missed", "Down|0");
 					table.insert(u1, 1, 0);
 					u4 = u4 + 1;
@@ -3025,32 +3029,32 @@ local function v388(p60, p61)
 		p60:Destroy();
 	end);
 end;
-l__Game__7.L:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v388);
-l__Game__7.R:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v388);
-local v396 = {};
+l__Game__7.L:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v389);
+l__Game__7.R:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v389);
 local v397 = {};
-for v398, v399 in pairs(u23.notes) do
-	for v400, v401 in pairs(v399.sectionNotes) do
-		table.insert(v396, { v401, v399 });
+local v398 = {};
+for v399, v400 in pairs(u23.notes) do
+	for v401, v402 in pairs(v400.sectionNotes) do
+		table.insert(v397, { v402, v400 });
 	end;
 end;
 if u23.events and u23.chartVersion == nil then
-	for v402, v403 in pairs(u23.events) do
-		for v404, v405 in pairs(v403[2]) do
-			table.insert(v396, { { v403[1], "-1", v405[1], v405[2], v405[3] } });
+	for v403, v404 in pairs(u23.events) do
+		for v405, v406 in pairs(v404[2]) do
+			table.insert(v397, { { v404[1], "-1", v406[1], v406[2], v406[3] } });
 		end;
 	end;
 elseif (not u23.events or u23.chartVersion ~= "MYTH 1.0") and u23.eventObjects then
-	for v406, v407 in pairs(u23.eventObjects) do
-		if v407.type == "BPM Change" then
-			table.insert(v397, { v407.position, v407.value });
+	for v407, v408 in pairs(u23.eventObjects) do
+		if v408.type == "BPM Change" then
+			table.insert(v398, { v408.position, v408.value });
 		end;
 	end;
 end;
-table.sort(v396, function(p62, p63)
+table.sort(v397, function(p62, p63)
 	return p62[1][1] < p63[1][1];
 end);
-table.sort(v397, function(p64, p65)
+table.sort(v398, function(p64, p65)
 	return p64[1] < p65[1];
 end);
 while true do
@@ -3062,179 +3066,179 @@ end;
 local u65 = {};
 local l__Templates__66 = l__Game__7.Templates;
 local function u67(p66, p67, p68)
-	local v408 = p66[1];
-	local v409 = p66[2];
-	local v410 = p66[3];
-	local v411 = v14.tomilseconds(1.5 / u23.speed);
-	local v412 = string.format("%.1f", v408) .. "~" .. v409;
-	if not (v408 - v411 < p68) or not (not u65[v412]) then
-		if u65[v412] then
-			table.remove(v396, 1);
+	local v409 = p66[1];
+	local v410 = p66[2];
+	local v411 = p66[3];
+	local v412 = v14.tomilseconds(1.5 / u23.speed);
+	local v413 = string.format("%.1f", v409) .. "~" .. v410;
+	if not (v409 - v412 < p68) or not (not u65[v413]) then
+		if u65[v413] then
+			table.remove(v397, 1);
 			return true;
 		else
 			return;
 		end;
 	end;
 	if l__Parent__3.Config.Randomize.Value == true and not v87 and not v89 and not v88 then
-		local v413 = nil;
+		local v414 = nil;
 		while true do
-			local v414 = string.format("%.1f", v408);
-			if tonumber(v409) >= 4 then
-				local v415 = math.random(4, 7);
+			local v415 = string.format("%.1f", v409);
+			if tonumber(v410) >= 4 then
+				local v416 = math.random(4, 7);
 			else
-				v415 = math.random(0, 3);
+				v416 = math.random(0, 3);
 			end;
-			v409 = v415;
-			v413 = string.format("%.1f", v408) .. "~" .. v409;
+			v410 = v416;
+			v414 = string.format("%.1f", v409) .. "~" .. v410;
 			if not p66.yo then
 				p66.yo = 0;
 			else
 				p66.yo = p66.yo + 1;
 			end;
-			if not u65[v413] then
+			if not u65[v414] then
 				break;
 			end;
 			if p66.yo > 2 then
 				break;
 			end;		
 		end;
+		u65[v414] = true;
 		u65[v413] = true;
-		u65[v412] = true;
 		if p66.yo > 4 then
 			return;
 		end;
 	end;
-	u65[v412] = true;
-	local v416 = game.ReplicatedStorage.Modules.PsychEvents:FindFirstChild(v410);
-	if v416 then
-		require(v416).Event(l__Parent__3, p66);
+	u65[v413] = true;
+	local v417 = game.ReplicatedStorage.Modules.PsychEvents:FindFirstChild(v411);
+	if v417 then
+		require(v417).Event(l__Parent__3, p66);
 		return;
 	end;
 	if l__Parent__3.Config.Mirror.Value == true and l__Parent__3.Config.Randomize.Value == false and not v87 and not v89 and not v88 then
-		if v409 >= 4 then
-			v409 = 7 - (v409 - 4);
+		if v410 >= 4 then
+			v410 = 7 - (v410 - 4);
 		else
-			v409 = 3 - v409;
+			v410 = 3 - v410;
 		end;
 	end;
 	if not p67 then
 		return;
 	end;
-	local v417 = p67.mustHitSection;
-	local v418, v419, v420 = v109(v409, p66[4]);
-	if v419 then
-		v417 = not v417;
+	local v418 = p67.mustHitSection;
+	local v419, v420, v421 = v109(v410, p66[4]);
+	if v420 then
+		v418 = not v418;
 	end;
-	if v417 then
-		local v421 = "R";
+	if v418 then
+		local v422 = "R";
 	else
-		v421 = "L";
+		v422 = "L";
 	end;
-	if not v418 then
+	if not v419 then
 		return;
 	end;
-	if not l__Templates__66:FindFirstChild(v418) then
+	if not l__Templates__66:FindFirstChild(v419) then
 		return;
 	end;
-	local v422 = l__Templates__66[v418]:Clone();
-	v422.Position = UDim2.new(1, 0, 6.666 - (p68 - v408 + v411) / 80, 0);
-	v422.HellNote.Value = v420;
-	if not v85:FindFirstChild("NoHoldNotes") and tonumber(v410) then
-		v422.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.abs(v410) * (0.45 * u23.speed) / 100, 0);
+	local v423 = l__Templates__66[v419]:Clone();
+	v423.Position = UDim2.new(1, 0, 6.666 - (p68 - v409 + v412) / 80, 0);
+	v423.HellNote.Value = v421;
+	if not v85:FindFirstChild("NoHoldNotes") and tonumber(v411) then
+		v423.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.abs(v411) * (0.45 * u23.speed) / 100, 0);
 	end;
 	if v85.Name == "God Mode" then
-		v422.Name = string.gsub(v422.Name, "|Shaggy", "");
-		if string.match(v422.Name, "|Matt") then
-			v422.Name = string.gsub(v422.Name, "|Matt", "");
-			v422.HellNote.Value = false;
+		v423.Name = string.gsub(v423.Name, "|Shaggy", "");
+		if string.match(v423.Name, "|Matt") then
+			v423.Name = string.gsub(v423.Name, "|Matt", "");
+			v423.HellNote.Value = false;
 		end;
 	end;
-	v422:SetAttribute("Length", v422.Frame.Bar.Size.Y.Scale);
-	v422:SetAttribute("Made", tick());
-	v422:SetAttribute("Side", v421);
-	v422:SetAttribute("NoteData", v412);
-	v422:SetAttribute("SustainLength", v410);
+	v423:SetAttribute("Length", v423.Frame.Bar.Size.Y.Scale);
+	v423:SetAttribute("Made", tick());
+	v423:SetAttribute("Side", v422);
+	v423:SetAttribute("NoteData", v413);
+	v423:SetAttribute("SustainLength", v411);
 	if not v86 then
-		if l__Parent__3.PlayerSide.Value ~= v421 then
-			v422.Frame.Bar.End.Image = l__Value__28;
-			v422.Frame.Bar.ImageLabel.Image = l__Value__28;
-			v422.Frame.Arrow.Image = l__Value__28;
+		if l__Parent__3.PlayerSide.Value ~= v422 then
+			v423.Frame.Bar.End.Image = l__Value__28;
+			v423.Frame.Bar.ImageLabel.Image = l__Value__28;
+			v423.Frame.Arrow.Image = l__Value__28;
 			if v111:FindFirstChild("XML") then
 				if v111:FindFirstChild("Animated") and v111:FindFirstChild("Animated").Value == true then
-					local v423 = require(v111.Config);
-					local v424 = v20.new(v422.Frame.Arrow, true, 1, false);
-					v424.Animations = {};
-					v424.CurrAnimation = nil;
-					v424.AnimData.Looped = false;
-					if type(v423.note) == "string" then
-						v424:AddSparrowXML(v111.XML, "Arrow", v423.note, 24, true).ImageId = l__Value__28;
-					else
-						v424:AddSparrowXML(v111.XML, "Arrow", v423.note[v422.Name], 24, true).ImageId = l__Value__28;
-					end;
-					v424:PlayAnimation("Arrow");
-					local v425 = v20.new(v422.Frame.Arrow, true, 1, false);
+					local v424 = require(v111.Config);
+					local v425 = v20.new(v423.Frame.Arrow, true, 1, false);
 					v425.Animations = {};
 					v425.CurrAnimation = nil;
 					v425.AnimData.Looped = false;
-					if type(v423.hold) == "string" then
-						v425:AddSparrowXML(v111.XML, "Hold", v423.hold, 24, true).ImageId = l__Value__28;
+					if type(v424.note) == "string" then
+						v425:AddSparrowXML(v111.XML, "Arrow", v424.note, 24, true).ImageId = l__Value__28;
 					else
-						v425:AddSparrowXML(v111.XML, "Hold", v423.hold[v422.Name], 24, true).ImageId = l__Value__28;
+						v425:AddSparrowXML(v111.XML, "Arrow", v424.note[v423.Name], 24, true).ImageId = l__Value__28;
 					end;
-					v425:PlayAnimation("Hold");
-					local v426 = v20.new(v422.Frame.Arrow, true, 1, false);
+					v425:PlayAnimation("Arrow");
+					local v426 = v20.new(v423.Frame.Arrow, true, 1, false);
 					v426.Animations = {};
 					v426.CurrAnimation = nil;
 					v426.AnimData.Looped = false;
-					if type(v423.holdend) == "string" then
-						v426:AddSparrowXML(v111.XML, "HoldEnd", v423.holdend, 24, true).ImageId = l__Value__28;
+					if type(v424.hold) == "string" then
+						v426:AddSparrowXML(v111.XML, "Hold", v424.hold, 24, true).ImageId = l__Value__28;
 					else
-						v426:AddSparrowXML(v111.XML, "HoldEnd", v423.holdend[v422.Name], 24, true).ImageId = l__Value__28;
+						v426:AddSparrowXML(v111.XML, "Hold", v424.hold[v423.Name], 24, true).ImageId = l__Value__28;
 					end;
-					v426:PlayAnimation("HoldEnd");
+					v426:PlayAnimation("Hold");
+					local v427 = v20.new(v423.Frame.Arrow, true, 1, false);
+					v427.Animations = {};
+					v427.CurrAnimation = nil;
+					v427.AnimData.Looped = false;
+					if type(v424.holdend) == "string" then
+						v427:AddSparrowXML(v111.XML, "HoldEnd", v424.holdend, 24, true).ImageId = l__Value__28;
+					else
+						v427:AddSparrowXML(v111.XML, "HoldEnd", v424.holdend[v423.Name], 24, true).ImageId = l__Value__28;
+					end;
+					v427:PlayAnimation("HoldEnd");
 				else
-					require(v111.XML).OpponentNoteInserted(v422);
+					require(v111.XML).OpponentNoteInserted(v423);
 				end;
 			end;
 		elseif v60:FindFirstChild("XML") then
 			if v60:FindFirstChild("Animated") and v60:FindFirstChild("Animated").Value == true then
-				local v427 = require(v60.Config);
-				local v428 = v20.new(v422.Frame.Arrow, true, 1, false);
-				v428.Animations = {};
-				v428.CurrAnimation = nil;
-				v428.AnimData.Looped = false;
-				if type(v427.note) == "string" then
-					v428:AddSparrowXML(v60.XML, "Arrow", v427.note, 24, true).ImageId = v60.Notes.Value;
-				else
-					v428:AddSparrowXML(v60.XML, "Arrow", v427.note[v422.Name], 24, true).ImageId = v60.Notes.Value;
-				end;
-				v428:PlayAnimation("Arrow");
-				local v429 = v20.new(v422.Frame.Arrow, true, 1, false);
+				local v428 = require(v60.Config);
+				local v429 = v20.new(v423.Frame.Arrow, true, 1, false);
 				v429.Animations = {};
 				v429.CurrAnimation = nil;
 				v429.AnimData.Looped = false;
-				if type(v427.hold) == "string" then
-					v429:AddSparrowXML(v60.XML, "Hold", v427.hold, 24, true).ImageId = v60.Notes.Value;
+				if type(v428.note) == "string" then
+					v429:AddSparrowXML(v60.XML, "Arrow", v428.note, 24, true).ImageId = v60.Notes.Value;
 				else
-					v429:AddSparrowXML(v60.XML, "Hold", v427.hold[v422.Name], 24, true).ImageId = v60.Notes.Value;
+					v429:AddSparrowXML(v60.XML, "Arrow", v428.note[v423.Name], 24, true).ImageId = v60.Notes.Value;
 				end;
-				v429:PlayAnimation("Hold");
-				local v430 = v20.new(v422.Frame.Arrow, true, 1, false);
+				v429:PlayAnimation("Arrow");
+				local v430 = v20.new(v423.Frame.Arrow, true, 1, false);
 				v430.Animations = {};
 				v430.CurrAnimation = nil;
 				v430.AnimData.Looped = false;
-				if type(v427.holdend) == "string" then
-					v430:AddSparrowXML(v60.XML, "HoldEnd", v427.holdend, 24, true).ImageId = v60.Notes.Value;
+				if type(v428.hold) == "string" then
+					v430:AddSparrowXML(v60.XML, "Hold", v428.hold, 24, true).ImageId = v60.Notes.Value;
 				else
-					v430:AddSparrowXML(v60.XML, "HoldEnd", v427.holdend[v422.Name], 24, true).ImageId = v60.Notes.Value;
+					v430:AddSparrowXML(v60.XML, "Hold", v428.hold[v423.Name], 24, true).ImageId = v60.Notes.Value;
 				end;
-				v430:PlayAnimation("HoldEnd");
+				v430:PlayAnimation("Hold");
+				local v431 = v20.new(v423.Frame.Arrow, true, 1, false);
+				v431.Animations = {};
+				v431.CurrAnimation = nil;
+				v431.AnimData.Looped = false;
+				if type(v428.holdend) == "string" then
+					v431:AddSparrowXML(v60.XML, "HoldEnd", v428.holdend, 24, true).ImageId = v60.Notes.Value;
+				else
+					v431:AddSparrowXML(v60.XML, "HoldEnd", v428.holdend[v423.Name], 24, true).ImageId = v60.Notes.Value;
+				end;
+				v431:PlayAnimation("HoldEnd");
 			else
-				require(v60.XML).OpponentNoteInserted(v422);
+				require(v60.XML).OpponentNoteInserted(v423);
 			end;
 		end;
 	end;
-	v422.Parent = l__Game__7[v421].Arrows.IncomingNotes:FindFirstChild(v422.Name) or l__Game__7[v421].Arrows.IncomingNotes:FindFirstChild(string.split(v422.Name, "_")[1]);
+	v423.Parent = l__Game__7[v422].Arrows.IncomingNotes:FindFirstChild(v423.Name) or l__Game__7[v422].Arrows.IncomingNotes:FindFirstChild(string.split(v423.Name, "_")[1]);
 	return true;
 end;
 local u68 = l__RunService__18.Heartbeat:Connect(function()
@@ -3243,11 +3247,11 @@ local u68 = l__RunService__18.Heartbeat:Connect(function()
 	end;
 	local u69 = v14.tomilseconds(l__Config__4.TimePast.Value) + u25;
 	local function u70()
-		if v396[1] and u67(v396[1][1], v396[1][2], u69) then
+		if v397[1] and u67(v397[1][1], v397[1][2], u69) then
 			u70();
 		end;
 	end;
-	if v396[1] and u67(v396[1][1], v396[1][2], u69) then
+	if v397[1] and u67(v397[1][1], v397[1][2], u69) then
 		u70();
 	end;
 end);
@@ -3272,8 +3276,8 @@ local function u76()
 	if v256 then
 		v256:Disconnect();
 	end;
-	if v361 then
-		v361:Disconnect();
+	if v362 then
+		v362:Disconnect();
 	end;
 	if u68 then
 		u68:Disconnect();
@@ -3281,11 +3285,11 @@ local function u76()
 	if u71 then
 		u71:Disconnect();
 	end;
-	if v374 then
-		v374:Disconnect();
+	if v375 then
+		v375:Disconnect();
 	end;
-	if v368 then
-		v368:Disconnect();
+	if v369 then
+		v369:Disconnect();
 	end;
 	if v106 then
 		v106:Disconnect();
@@ -3302,36 +3306,36 @@ local function u76()
 	l__CameraPoints__8.L.CFrame = l__CFrame__72;
 	l__CameraPoints__8.R.CFrame = l__CFrame__73;
 	l__CameraPoints__8.C.CFrame = l__CFrame__74;
-	for v431, v432 in pairs(workspace.ClientBG:GetChildren()) do
-		v432:Destroy();
+	for v432, v433 in pairs(workspace.ClientBG:GetChildren()) do
+		v433:Destroy();
 	end;
-	for v433, v434 in pairs(game.Lighting:GetChildren()) do
-		v434:Destroy();
+	for v434, v435 in pairs(game.Lighting:GetChildren()) do
+		v435:Destroy();
 	end;
-	for v435, v436 in pairs(game.Lighting:GetAttributes()) do
-		game.Lighting[v435] = v436;
+	for v436, v437 in pairs(game.Lighting:GetAttributes()) do
+		game.Lighting[v436] = v437;
 	end;
-	for v437, v438 in pairs(game.ReplicatedStorage.OGLighting:GetChildren()) do
-		v438:Clone().Parent = game.Lighting;
+	for v438, v439 in pairs(game.ReplicatedStorage.OGLighting:GetChildren()) do
+		v439:Clone().Parent = game.Lighting;
 	end;
 	task.spawn(function()
-		for v439, v440 in pairs((game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Unload"))) do
-			local v441 = v440[1];
-			local v442 = tonumber(v440[4]);
-			if v441 then
-				v441[v440[2]] = v442 and v442 or v440[3];
+		for v440, v441 in pairs((game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Unload"))) do
+			local v442 = v441[1];
+			local v443 = tonumber(v441[4]);
+			if v442 then
+				v442[v441[2]] = v443 and v443 or v441[3];
 			end;
 		end;
 	end);
 	u32:Stop();
 	l__Parent__3.GameMusic.Music:Stop();
 	l__Parent__3.GameMusic.Vocals:Stop();
-	for v443, v444 in pairs(l__Value__6.MusicPart:GetDescendants()) do
-		if v444:IsA("Sound") then
-			v444.Volume = 0;
-			v444.PlaybackSpeed = 1;
+	for v444, v445 in pairs(l__Value__6.MusicPart:GetDescendants()) do
+		if v445:IsA("Sound") then
+			v445.Volume = 0;
+			v445.PlaybackSpeed = 1;
 		else
-			v444:Destroy();
+			v445:Destroy();
 		end;
 	end;
 	l__Value__6.P1Board.G.Enabled = true;
@@ -3349,104 +3353,104 @@ local function u76()
 	end;
 end;
 local function u77(p69)
-	local v445 = l__Value__6.Config.Player1.Value == l__LocalPlayer__2 and l__Value__6.Config.P1Points.Value or l__Value__6.Config.P2Points.Value;
+	local v446 = l__Value__6.Config.Player1.Value == l__LocalPlayer__2 and l__Value__6.Config.P1Points.Value or l__Value__6.Config.P2Points.Value;
 	if u42 and u42.OnSongEnd then
 		local u78 = 0;
 		table.foreach(u1, function(p70, p71)
 			u78 = u78 + p71;
 		end);
-		u42.OnSongEnd(l__Parent__3, { u78 / #u1, v445 });
+		u42.OnSongEnd(l__Parent__3, { u78 / #u1, v446 });
 	end;
 	if not l__LocalPlayer__2.Input.ShowEndScreen.Value then
 		return;
 	end;
 	if v85.Parent.Parent.Parent.Name == "Songs" and v85:IsA("ModuleScript") then
-		local v446 = v85.Parent.Name;
+		local v447 = v85.Parent.Name;
 	else
-		v446 = v85.Name;
+		v447 = v85.Name;
 	end;
-	local v447 = game.ReplicatedStorage.Misc.EndScene:Clone();
-	v447.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
-	v447.BGFrame.SongName.Text = "<font color='rgb(90,220,255)'>" .. v446 .. "</font> Cleared!";
-	v447.BGFrame.Judgements.Text = "Judgements:\n<font color='rgb(255,255,140)'>Marvelous</font> - " .. u6 .. "\n<font color='rgb(90,220,255)'>Sick</font> - " .. u7 .. "\n<font color='rgb(90,255,90)'>Good</font> - " .. u8 .. "\n<font color='rgb(255,210,0)'>Ok</font> - " .. u9 .. "\n<font color='rgb(165,65,235)'>Bad</font> - " .. u10 .. "\n\nScore - " .. v445 .. "\nAccuracy - " .. u2 .. "%\nMisses - " .. u4 .. "\nBest Combo - " .. u5;
+	local v448 = game.ReplicatedStorage.Misc.EndScene:Clone();
+	v448.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
+	v448.BGFrame.SongName.Text = "<font color='rgb(90,220,255)'>" .. v447 .. "</font> Cleared!";
+	v448.BGFrame.Judgements.Text = "Judgements:\n<font color='rgb(255,255,140)'>Marvelous</font> - " .. u6 .. "\n<font color='rgb(90,220,255)'>Sick</font> - " .. u7 .. "\n<font color='rgb(90,255,90)'>Good</font> - " .. u8 .. "\n<font color='rgb(255,210,0)'>Ok</font> - " .. u9 .. "\n<font color='rgb(165,65,235)'>Bad</font> - " .. u10 .. "\n\nScore - " .. v446 .. "\nAccuracy - " .. u2 .. "%\nMisses - " .. u4 .. "\nBest Combo - " .. u5;
 	if l__LocalPlayer__2.Input.ExtraData.Value then
 		if u7 == 0 then
-			local v448 = 1;
+			local v449 = 1;
 		else
-			v448 = u7;
+			v449 = u7;
 		end;
 		if u7 == 0 then
-			local v449 = ":inf";
+			local v450 = ":inf";
 		else
-			v449 = ":1";
+			v450 = ":1";
 		end;
 		if u8 == 0 then
-			local v450 = 1;
+			local v451 = 1;
 		else
-			v450 = u8;
+			v451 = u8;
 		end;
 		if u8 == 0 then
-			local v451 = ":inf";
+			local v452 = ":inf";
 		else
-			v451 = ":1";
+			v452 = ":1";
 		end;
-		v447.BGFrame.Judgements.Text = v447.BGFrame.Judgements.Text .. "\n\nMA - " .. math.floor(u6 / v448 * 100 + 0.5) / 100 .. v449 .. "\nPA - " .. math.floor(u7 / v450 * 100 + 0.5) / 100 .. v451;
-		v447.BGFrame.Judgements.Text = v447.BGFrame.Judgements.Text .. "\nMean - " .. u11.CalculateMean(u12) .. "ms";
+		v448.BGFrame.Judgements.Text = v448.BGFrame.Judgements.Text .. "\n\nMA - " .. math.floor(u6 / v449 * 100 + 0.5) / 100 .. v450 .. "\nPA - " .. math.floor(u7 / v451 * 100 + 0.5) / 100 .. v452;
+		v448.BGFrame.Judgements.Text = v448.BGFrame.Judgements.Text .. "\nMean - " .. u11.CalculateMean(u12) .. "ms";
 	end;
-	v447.BGFrame.InputType.Text = "Input System Used: " .. l__LocalPlayer__2.Input.InputType.Value;
-	v447.Background.BackgroundTransparency = 1;
-	local v452 = l__Parent__3.GameMusic.Vocals.TimePosition - 7 < l__Parent__3.GameMusic.Vocals.TimeLength;
-	if u4 == 0 and v452 and not p69 and l__Parent__3.GameMusic.Vocals.TimeLength > 0 and u6 + u7 + u8 + u9 + u10 + u4 >= 20 then
-		v447.BGFrame.Extra.Visible = true;
+	v448.BGFrame.InputType.Text = "Input System Used: " .. l__LocalPlayer__2.Input.InputType.Value;
+	v448.Background.BackgroundTransparency = 1;
+	local v453 = l__Parent__3.GameMusic.Vocals.TimePosition - 7 < l__Parent__3.GameMusic.Vocals.TimeLength;
+	if u4 == 0 and v453 and not p69 and l__Parent__3.GameMusic.Vocals.TimeLength > 0 and u6 + u7 + u8 + u9 + u10 + u4 >= 20 then
+		v448.BGFrame.Extra.Visible = true;
 		if tonumber(u2) == 100 then
-			local v453 = "<font color='rgb(255, 225, 80)'>PFC</font>";
+			local v454 = "<font color='rgb(255, 225, 80)'>PFC</font>";
 		else
-			v453 = "<font color='rgb(90,220,255)'>FC</font>";
+			v454 = "<font color='rgb(90,220,255)'>FC</font>";
 		end;
-		v447.BGFrame.Extra.Text = v453;
+		v448.BGFrame.Extra.Text = v454;
 		if u7 + u8 + u9 + u10 + u4 == 0 then
-			v447.BGFrame.Extra.Text = "<font color='rgb(64, 211, 255)'>MFC</font>";
+			v448.BGFrame.Extra.Text = "<font color='rgb(64, 211, 255)'>MFC</font>";
 		end;
 	end;
 	if p69 then
-		v447.Ranking.Image = u75.F[2];
-		v447.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v446 .. " FAILED!</font>";
-	elseif not v452 or not (l__Parent__3.GameMusic.Vocals.TimeLength > 0) then
-		v447.Ranking.Image = "rbxassetid://8906780323";
-		v447.BGFrame.SongName.Text = "<font color='rgb(255,140,0)'>" .. v446 .. " Incomplete.</font>";
+		v448.Ranking.Image = u75.F[2];
+		v448.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v447 .. " FAILED!</font>";
+	elseif not v453 or not (l__Parent__3.GameMusic.Vocals.TimeLength > 0) then
+		v448.Ranking.Image = "rbxassetid://8906780323";
+		v448.BGFrame.SongName.Text = "<font color='rgb(255,140,0)'>" .. v447 .. " Incomplete.</font>";
 	else
-		local v454 = 0;
-		for v455, v456 in pairs(u75) do
-			local v457 = v456[1];
-			if v457 <= tonumber(u2) and v454 <= v457 then
-				v454 = v457;
-				v447.Ranking.Image = v456[2];
-				if v455 == "F" then
-					v447.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v446 .. " FAILED!</font>";
+		local v455 = 0;
+		for v456, v457 in pairs(u75) do
+			local v458 = v457[1];
+			if v458 <= tonumber(u2) and v455 <= v458 then
+				v455 = v458;
+				v448.Ranking.Image = v457[2];
+				if v456 == "F" then
+					v448.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v447 .. " FAILED!</font>";
 				end;
 			end;
 		end;
 	end;
-	u11.MakeHitGraph(u12, v447);
-	for v458, v459 in pairs(v447.BGFrame:GetChildren()) do
-		v459.TextTransparency = 1;
-		v459.TextStrokeTransparency = 1;
+	u11.MakeHitGraph(u12, v448);
+	for v459, v460 in pairs(v448.BGFrame:GetChildren()) do
+		v460.TextTransparency = 1;
+		v460.TextStrokeTransparency = 1;
 	end;
-	l__TweenService__16:Create(v447.Background, TweenInfo.new(0.35), {
+	l__TweenService__16:Create(v448.Background, TweenInfo.new(0.35), {
 		BackgroundTransparency = 0.3
 	}):Play();
-	l__TweenService__16:Create(v447.Ranking, TweenInfo.new(0.35), {
+	l__TweenService__16:Create(v448.Ranking, TweenInfo.new(0.35), {
 		ImageTransparency = 0
 	}):Play();
-	for v460, v461 in pairs(v447.BGFrame:GetChildren()) do
-		l__TweenService__16:Create(v461, TweenInfo.new(0.35), {
+	for v461, v462 in pairs(v448.BGFrame:GetChildren()) do
+		l__TweenService__16:Create(v462, TweenInfo.new(0.35), {
 			TextTransparency = 0
 		}):Play();
-		l__TweenService__16:Create(v461, TweenInfo.new(0.35), {
+		l__TweenService__16:Create(v462, TweenInfo.new(0.35), {
 			TextStrokeTransparency = 0
 		}):Play();
 	end;
-	v447.LocalScript.Disabled = false;
+	v448.LocalScript.Disabled = false;
 end;
 u71 = l__LocalPlayer__2.Character.Humanoid.Died:Connect(function()
 	u76();
@@ -3455,14 +3459,14 @@ end);
 l__Events__5.Stop.OnClientEvent:Connect(function()
 	u76();
 	if l__LocalPlayer__2.Character and l__LocalPlayer__2.Character:FindFirstChild("Humanoid") then
-		local v462, v463, v464 = ipairs(l__LocalPlayer__2.Character.Humanoid:GetPlayingAnimationTracks());
+		local v463, v464, v465 = ipairs(l__LocalPlayer__2.Character.Humanoid:GetPlayingAnimationTracks());
 		while true do
-			v462(v463, v464);
-			if not v462 then
+			v463(v464, v465);
+			if not v463 then
 				break;
 			end;
-			v464 = v462;
-			v463:Stop();		
+			v465 = v463;
+			v464:Stop();		
 		end;
 		u77();
 	end;
