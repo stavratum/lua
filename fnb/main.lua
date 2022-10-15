@@ -13,11 +13,11 @@ local UwUware = import("fnb/uwuware")
 
 local Flags = UwUware.flags
 local Chances = {
-    Marvelous = 0,
+    Marvelous = 100,
     Sick = 0,
     Good = 0,
     Ok = 0,
-    Bad = 100,
+    Bad = 0,
     Miss = 0
 }
 local Offsets = {
