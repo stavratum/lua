@@ -1,16 +1,34 @@
--- grrr nya
+-- SKIDDED!!!!!!!!!!!!!!!!
 
-local function require(s)
+local function import(s)
     return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
 end
 
-require("fnb/hooks")
-local Connections = require("Connections")
-local Discord = require("Discord")
-local Util = require("fnb/util")
-local UwUware = require("fnb/uwuware")
+import("fnb/hooks")
+local Connections = import("Connections")
+local Discord = import("Discord")
+local Util = import("fnb/util")
+local UwUware = import("fnb/uwuware")
 
-require = getgenv().require
+
+local Flags = UwUware.flags
+local Chances = {
+    Marvelous = 0,
+    Sick = 0,
+    Good = 0,
+    Ok = 0,
+    Bad = 100,
+    Miss = 0
+}
+local Offsets = {
+    Marvelous = 0,
+    Sick = 0.032,
+    Good = 0.06,
+    Ok = 0.11,
+    Bad = 0.155,
+    Miss = "TIM ALERT TIM ALERT TIM ALERT"
+}
+
 
 local VirtualInputManager = game:GetService "VirtualInputManager"
 local InputService = game:GetService "UserInputService"
@@ -23,15 +41,39 @@ local PlayerGui = Client.PlayerGui
 
 
 local set_identity = (syn and syn.set_thread_identity or setidentity or setthreadcontext)
-local get_signal_function = function(Signal, Target, _)
-    set_identity(2)
-    for index, connection in pairs( getconnections(Signal) ) do
-        if getfenv(connection.Function).script == Target then
-            _ = connection.Function
-        end 
+local random = (meth and meth or math).random
+local pairs = pairs
+local get_signal_function
+local Roll do 
+    get_signal_function = function(Signal, Target, _)
+        set_identity(2)
+        for index, connection in pairs( getconnections(Signal) ) do
+            if getfenv(connection.Function).script == Target then
+                _ = connection.Function
+            end 
+        end
+        set_identity(7)
+        return _;
     end
-    set_identity(7)
-    return _;
+    
+    Roll = function()
+        local a, b = 0, 0
+        for Judgement, v in pairs(Chances) do
+            a += v
+        end
+        if (a < 1) then return Offsets.Marvelous end
+        
+        a = random(a)
+        for Judgement, v in pairs(Chances) do 
+            b += v
+            
+            if (b > a) then
+                return Offsets[Judgement]
+            end
+        end
+        
+        return Offsets.Marvelous
+    end
 end
 
 local MAIN = Connections:Open("MAIN")
@@ -124,7 +166,7 @@ local function onChildAdded(Object)
     for i,v in pairs(Chart) do
         IncomingNotes[v.Key] = (IncomingNotes[v.Key] or {})
         if v.At > TimePast.Value * 1000 then 
-            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 10, tonumber(v.Length) and (v.Length / 1000) or 0 }
+            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 20, tonumber(v.Length) and (v.Length / 1000) or 0 }
         end
     end
     
@@ -143,18 +185,20 @@ local function onChildAdded(Object)
             if Arrow and (Arrow[1] <= TimePast.Value * 1000) then
                 index += 1
                 
-                if (not UwUware.flags.IsAnimeFan) then return end
+                if (not Flags.IsAnimeFan) then return end
+                local Offset = Roll()
+                if (Offset == Offsets.Miss) then return end
                 
-                if (UwUware.flags.FireDirectly) then 
+                if (Flags.FireDirectly) then 
                     set_identity(2)   
                      
-                    spawn(inputFunction, { KeyCode = input, UserInputState = Begin })
-                    delay(Arrow[2], inputFunction, { KeyCode = input, UserInputState = End })
+                    delay(Offset, inputFunction, { KeyCode = input, UserInputState = Begin })
+                    delay(Arrow[2] + Offset, inputFunction, { KeyCode = input, UserInputState = End })
                 else
                     set_identity(7)
                     
-                    VirtualInputManager:SendKeyEvent(true, input, false, nil)
-                    delay(Arrow[2], VirtualInputManager.SendKeyEvent, VirtualInputManager, false, input, false, nil)
+                    delay(Offset, VirtualInputManager.SendKeyEvent, VirtualInputManager, true, input, false, nil)
+                    delay(Arrow[2] + Offset, VirtualInputManager.SendKeyEvent, VirtualInputManager, false, input, false, nil)
                 end
             end
         end
@@ -169,6 +213,15 @@ task.spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine")
 
 
 local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
+    local Configuration = Window:AddFolder("Config") do 
+        Configuration:AddSlider { text = "% Marvelous", min = 0, max = 100, value = Chances.Marvelous, callback = function(v) Chances.Marvelous = v end }
+        Configuration:AddSlider { text = "% Sick", min = 0, max = 100, value = Chances.Sick, callback = function(v) Chances.Sick = v end }
+        Configuration:AddSlider { text = "% Good", min = 0, max = 100, value = Chances.Good, callback = function(v) Chances.Good = v end }
+        Configuration:AddSlider { text = "% Ok", min = 0, max = 100, value = Chances.Ok, callback = function(v) Chances.Ok = v end }
+        Configuration:AddSlider { text = "% Bad", min = 0, max = 100, value = Chances.Bad, callback = function(v) Chances.Bad = v end }
+        Configuration:AddSlider { text = "% Miss", min = 0, max = 100, value = Chances.Miss, callback = function(v) Chances.Miss = v end }
+    end 
+    
     Window:AddToggle { text = "Toggle Autoplayer", flag = "IsAnimeFan", state = true }
     Window:AddToggle { text = "Fire Signals Directly", flag = "FireDirectly", state = true }
     Window:AddBind { text = "Close GUI", key = Enum.KeyCode.Quote, callback = function() UwUware:Close() end }
@@ -186,12 +239,6 @@ local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
 end
 
 --
-
-for i,v in pairs(workspace:GetDescendants()) do
-    if v.ClassName == "ProximityPrompt" then
-        v.HoldDuration = 0
-    end
-end
 
 if Client.Input.Keybinds.R4.Value == ";" then
     game:GetService("ReplicatedStorage").Events.RemoteEvent:FireServer("Input", "Semicolon", "R4")
