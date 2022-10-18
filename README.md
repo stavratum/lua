@@ -6,4 +6,4 @@ Features:
 
 Made by AFC (stavratum#3500 and cup#7282)
 
-Discord: https://discord.gg/DaaeeHdGur
+Discord: https://discord.gg/afc
