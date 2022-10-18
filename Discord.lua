@@ -1,1 +1,1 @@
-return "https://discord.gg/DaaeeHdGur"
+return "https://discord.gg/afc"
