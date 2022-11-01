@@ -4,7 +4,10 @@ local function import(s)
     return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
 end
 
-import("fnb/hooks")
+if not getvirtualinputmanager then
+    import("fnb/hooks")
+end
+
 local Connections = import("Connections")
 local Discord = import("Discord")
 local Util = import("fnb/util")
@@ -30,7 +33,7 @@ local Offsets = {
 }
 
 
-local VirtualInputManager = game:GetService "VirtualInputManager"
+local VirtualInputManager = (getvirtualinputmanager or game.GetService)(game, "VirtualInputManager")
 local InputService = game:GetService "UserInputService"
 local RunService = game:GetService "RunService"
 local Players = game:GetService "Players"
