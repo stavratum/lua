@@ -4,10 +4,7 @@ local function import(s)
     return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
 end
 
-if not getvirtualinputmanager then
-    import("fnb/hooks")
-end
-
+import("fnb/hooks")
 local Connections = import("Connections")
 local Discord = import("Discord")
 local Util = import("fnb/util")
