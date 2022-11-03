@@ -35,23 +35,34 @@ if not getgenv().IsAnimeFan then
     
     local __namecall, __index, __newindex;
     
-    __namecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local args = {...};
-        
-        if (self == game) and (args[1] == service) and not checkcaller() then
-            local method = getnamecallmethod();
-                
-            if indexing_methods[ method ] and not created then
-                return nil;
+    if not getvirtualinputmanager then
+        __namecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local args = {...};
+
+            if (self == game) and (args[1] == service) and not checkcaller() then
+                local method = getnamecallmethod();
+
+                if indexing_methods[ method ] and not created then
+                    return nil;
+                end;
+
+                if creating_methods[ method ] then
+                    created = true;
+                end;
             end;
-            
-            if creating_methods[ method ] then
+
+            return __namecall(self, ...)
+        end );
+
+        __index = hookmetamethod(game, "__index", function(table, index)
+
+            if (not checkcaller()) and (table == game) and (index == service) then
                 created = true;
-            end;
-        end;
-        
-        return __namecall(self, ...)
-    end );
+            end
+
+            return __index(table, index);
+        end );
+    end
     
     __newindex = hookmetamethod(game, "__newindex", function(...)
         local index = ({...})[2];
@@ -63,40 +74,33 @@ if not getgenv().IsAnimeFan then
         return __newindex(...);
     end );
     
-    __index = hookmetamethod(game, "__index", function(table, index)
-        
-        if (not checkcaller()) and (table == game) and (index == service) then
-            created = true;
-        end
-        
-        return __index(table, index);
-    end );
-    
     --
     -- hooking functions
     --
     
-    for method, v in pairs(indexing_methods) do
-        indexing_methods[method] = hookfunction(game[method], function(self, ...)
-            local args = {...};
-            
-            if self == game and (args[1] == service) and not checkcaller() and not created then
-                return;
-            end
-            
-            return indexing_methods[method](self, ...);
-        end );
-    end;
-    
-    for method, v in pairs(creating_methods) do
-        creating_methods[method] = hookfunction(game[method], function(self, ...)
-            if self == game and (... == service) and not checkcaller() then
-                created = true;
-            end;
-            
-            return creating_methods[method](self, ...);
-        end );
-    end;
+    if not getvirtualinputmanager then
+        for method, v in pairs(indexing_methods) do
+            indexing_methods[method] = hookfunction(game[method], function(self, ...)
+                local args = {...};
+
+                if self == game and (args[1] == service) and not checkcaller() and not created then
+                    return;
+                end
+
+                return indexing_methods[method](self, ...);
+            end );
+        end;
+
+        for method, v in pairs(creating_methods) do
+            creating_methods[method] = hookfunction(game[method], function(self, ...)
+                if self == game and (... == service) and not checkcaller() then
+                    created = true;
+                end;
+
+                return creating_methods[method](self, ...);
+            end );
+        end;
+    end
     
     --
     
