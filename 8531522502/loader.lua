@@ -1,4 +1,4 @@
-function getgenv().import(v)
+getgenv().import = function(v)
     local str = "https://raw.githubusercontent.com/%s/%s/main/%d/%s"
     local account = "stavratum"
     local repository = "lua"
