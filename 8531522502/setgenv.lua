@@ -1,3 +1,5 @@
+getrawmetatable(getgenv()).__metatable = nil -- This is required for table.clone :(((
+
 local new_genv = table.clone(getgenv())
 local set = function(i,v) new_genv[i] = v end
 
