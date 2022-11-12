@@ -1,5 +1,9 @@
-local function import(v)
-    return loadstring(game:HttpGet(("https://raw.githubusercontent.com/stavratum/lua/main/8531522502/%s"):format(v)))()
+function getgenv().import(v)
+    local str = "https://raw.githubusercontent.com/%s/%s/main/%d/%s"
+    local account = "stavratum"
+    local repository = "lua"
+    
+    return loadstring(game:HttpGet(str:format(account, repository, game.PlaceId, v)))()
 end
 
 local function main()
@@ -12,6 +16,6 @@ end
 print(
     ("%s :: Loaded in %.2f seconds"):format(
         script.Name,
-        -( tick() - main() )
+        -(tick() - main())
     )
 )
