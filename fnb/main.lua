@@ -1,5 +1,3 @@
--- SKIDDED!!!!!!!!!!!!!!!!
-
 local function import(s)
     return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
 end
@@ -82,7 +80,7 @@ local TEMP = Connections:Open("TEMP")
 
 local function onChildAdded(Object)
     if (not Object) then return end
-    if (#Object:GetDescendants() < 100) then return end
+    if (Object.name ~= "FNFEngine") then return end
     
     TEMP:Clear()
     
@@ -103,7 +101,6 @@ local function onChildAdded(Object)
     local Side = Object.PlayerSide.Value
     
     local TimePast = Object.Config.TimePast
-    
     
     while (not Stage.Config.Song.Value) do
         TimePast.Changed:Wait()
