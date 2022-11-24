@@ -1,3 +1,4 @@
+local discord = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/Discord.lua")()
 local uwuware, connected = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')(), {} do
     local Window = uwuware:CreateWindow'AFC | MMM AP'
     local Main = Window:AddFolder'Main'
@@ -15,15 +16,9 @@ local uwuware, connected = loadstring(game:HttpGet'https://raw.githubusercontent
         end
     }
     local Credits = Window:AddFolder'Credits'
-    Credits:AddButton{text = 'Copy discord invite',
+    Credits:AddButton{text = 'Copy discord',
         callback = function()
-            if setclipboard then 
-                print"Discord invite is in your clipboard"
-                setclipboard"https://discord.gg/tDdyuYvXhY"
-            else
-                print"Exploit doesn't support 'setclipboard'"
-                print"\n\n== DISCORD INVITE ==\nhttps://discord.gg/tDdyuYvXhY\n===================="
-            end
+            (setclipboard or print)(discord);
         end
     }
     Credits:AddLabel{text = "Updated: 8/8/2022"}
