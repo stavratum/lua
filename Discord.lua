@@ -1,1 +1,1 @@
-return "https://discord.gg/UCvG5e4W5s"
+return "stavratum#3500, cup#7282"
