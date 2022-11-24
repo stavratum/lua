@@ -230,7 +230,7 @@ local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
             UwUware.base:Destroy()
         end
     })
-    Window:AddButton { text = "Copy Discord Invite", callback = function() (setclipboard or print)(Discord) end }
+    Window:AddButton { text = "Copy Discord Tags", callback = function() (setclipboard or print)(Discord) end }
     
     UwUware:Init()
 end
