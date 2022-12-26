@@ -586,7 +586,7 @@ local v90, v91 = pcall(function()
 	u23 = game.HttpService:JSONDecode(u23).song;
 end);
 if v91 then
-	u23 = game.HttpService:JSONDecode(require(game.ReplicatedStorage.Songs["/v/-tan"].Sage.Hard)).song;
+	u23 = game.HttpService:JSONDecode(require(game.ReplicatedStorage.SongsFNF.Bopeebo.Hard)).song;
 end;
 u23.bpm = u23.bpm * l__Value__15;
 local v92 = 60 / (u23.bpm or 120 * l__Value__15);
