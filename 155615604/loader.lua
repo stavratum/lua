@@ -31,3 +31,9 @@ local __namecall; __namecall = hookmetamethod(game, "__namecall", function(self,
     
     return __namecall(self, ...)
 end)
+
+--
+
+getgenv().config = config
+getgenv().ecfg = ecfg
+getgenv().cmds = cmds
