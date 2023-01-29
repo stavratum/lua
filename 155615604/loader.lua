@@ -37,3 +37,7 @@ end)
 getgenv().config = config
 getgenv().ecfg = ecfg
 getgenv().cmds = cmds
+
+--
+
+loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/155615604/connect.lua")()
