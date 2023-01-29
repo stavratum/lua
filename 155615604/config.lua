@@ -1,4 +1,4 @@
-_G.config = {
+return {
     ["character:respawn"] = false,
     ["commands:prefix"] = ";"
 }
