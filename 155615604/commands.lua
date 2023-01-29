@@ -26,12 +26,12 @@ local cmds; cmds = {
             ["guards"] = "Guards",
             ["inmates"] = "Inmates",
             ["neutral"] = "Neutral",
-            ["criminals"] = "criminals"
+            ["criminals"] = "Criminals"
         }
         
         local color = teams[ refs[team:lower()] ].TeamColor
         remotes.teamEvent:FireServer(color)
-        remotes.loadchar:InvokeServer()
+        remotes.loadchar:InvokeServer(players.LocalPlayer.name)
     end
 }
 
