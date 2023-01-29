@@ -1,6 +1,6 @@
 local players = game:GetService"Players"
-local teams = game:GetService"Teams"
 local replicatedStorage = game:GetService"ReplicatedStorage"
+local client = players.LocalPlayer
 
 local remotes = {
     ["loadchar"] = workspace.Remote.loadchar,
@@ -20,18 +20,23 @@ end
 --
 
 local cmds; cmds = {
-    ["team"] = function(team)
-        if not team then return end
-        local refs = {
-            ["guards"] = "Guards",
-            ["inmates"] = "Inmates",
-            ["neutral"] = "Neutral",
-            ["criminals"] = "Criminals"
-        }
+    ["reload"] = function()
+        local character = client.Character
+        local cframe = character.HumanoidRootPart.CFrame
         
-        local color = teams[ refs[team:lower()] ].TeamColor
-        remotes.teamEvent:FireServer(color)
-        remotes.loadchar:InvokeServer(players.LocalPlayer.name)
+        remotes.loadchar:InvokeServer(client)
+        if character == client.Character then wait() end
+        
+        client.Character.HumanoidRootPart.CFrame = cframe
+    end,
+    ["team"] = function(team)
+        local colors = {"Bright blue", "Bright orange", "Medium stone gray", "Really red"}
+        local color = indexOf({"guards", "inmates", "neutral", "criminals"}, team:lower())
+        
+        if color ~= -1 then
+            teamEvent:FireServer(colors[color])
+            cmds.reload()
+        end
     end
 }
 
