@@ -36,7 +36,7 @@ local __namecall; __namecall = hookmetamethod(game, "__namecall", function(self,
         table.remove(args, 1)
 
         if message:sub(1, #prefix) == prefix then
-            coro.resume(coro.create(cmds[cmd] or function() end), table.unpack(args)
+            coro.resume(coro.create(cmds[cmd] or function() end, table.unpack(args))
             if config["chat:register_message"] == false then
                 return
             end
