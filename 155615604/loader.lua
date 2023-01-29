@@ -25,7 +25,7 @@ local __namecall; __namecall = hookmetamethod(game, "__namecall", function(self,
         table.remove(args, 1)
 
         if message:sub(1, #prefix) == prefix then
-            return cmds[cmd](table.unpack(args))
+            return (cmds[cmd] or function() end)(table.unpack(args))
         end
     end
     
