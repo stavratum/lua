@@ -5,11 +5,12 @@ local content = ([[
     ;; starterGui notification
     startergui:notify true
     startergui:title "Loaded"
-    startergui:text "Prefix: %s"
+    startergui:text "Prefix - %s"
     startergui:duration 3.5
 ]])
+
 if not isfile("155615604.ecfg") then 
-    writefile("155615604.ecfg", content:gsub("\t", ""))
+    writefile("155615604.ecfg", content)
 end
 
 --
