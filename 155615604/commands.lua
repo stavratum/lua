@@ -25,7 +25,8 @@ local function fromPlayers(player)
     player = string.lower(player)
     
     for i, v in ipairs(players:GetChildren()) do
-        if string.sub(v.name, 1, #player) == player then
+        local part = string.sub(v.name, 1, #player)
+        if string.lower(part) == player then
             return v, i
         end
     end
