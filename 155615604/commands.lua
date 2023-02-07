@@ -89,7 +89,7 @@ local cmds; cmds = {
         if not character or character:FindFirstChild"ForceField" then return end
         
         itemHandler:InvokeServer(p_items["Remington 870"].ITEMPICKUP)
-        local gun = client.Character:WaitForChild"Remington 870"
+        local gun = client.Backpack:WaitForChild"Remington 870"
         
         local vector3 = Vector3.new
         local data = {
@@ -99,10 +99,7 @@ local cmds; cmds = {
             ["Hit"] = character.Head
         }
         
-        gun.Parent = client.Character
         shootEvent:FireServer({data, data, data, data, data, data, data, data}, gun)
-        gun.Parent = nil
-        
         gun:Destroy()
     end
 }
