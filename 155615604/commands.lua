@@ -69,13 +69,13 @@ local cmds; cmds = {
     end,
     ["guns"] = function()
         local invoke = itemHandler.InvokeServer
-        for _,v in ipairs({"Remington 870", "M9", "AK-47", "M4A1"}) do
+        for _,v in ipairs({"Remington 870", "M9", "AK-47"}) do
             spawn(invoke, itemHandler, p_items[v].ITEMPICKUP);
         end
     end,
     ["gun"] = function(gun)
-        local index = indexOf({"rem", "remington", "m9", "ak", "ak-47", "m4", "m4a1"}, string.lower(gun))
-        local ref = {"Remington 870", "Remington 870", "M9", "AK-47", "AK-47", "M4A1", "M4A1"}
+        local index = indexOf({"rem", "remington", "m9", "ak", "ak-47",}, string.lower(gun))
+        local ref = {"Remington 870", "Remington 870", "M9", "AK-47", "AK-47"}
         
         if index ~= -1 then
             itemHandler:InvokeServer(p_items[ ref[index] ].ITEMPICKUP)
