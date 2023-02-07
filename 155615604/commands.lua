@@ -2,6 +2,10 @@ local players = game:GetService"Players"
 local replicatedStorage = game:GetService"ReplicatedStorage"
 local client = players.LocalPlayer
 
+local Vector3 = Vector3.new
+local CFrame = CFrame.new
+local Ray = Ray.new
+
 local string = string
 local table = table
 
@@ -93,9 +97,8 @@ local cmds; cmds = {
         itemHandler:InvokeServer(p_items[name].ITEMPICKUP)
         local gun = client.Backpack:WaitForChild(name)
         
-        local vector3 = Vector3.new()
-        local ray = Ray.new(vector3, vector3)
-        local cframe = CFrame.new()
+        local ray = Ray(Vector3(), Vector3())
+        local cframe = CFrame()
         
         local data = {}
         for i = 1, 8 do
@@ -110,8 +113,9 @@ local cmds; cmds = {
         gun.Parent = client.Character
         shootEvent:FireServer(data, gun)
         
-        wait(0.5)
+        wait(0.05)
         unequipEvent:FireServer(gun)
+        wait(0.01)
         gun:Destroy()
     end
 }
