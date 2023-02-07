@@ -7,6 +7,7 @@ local table = table
 
 local p_items = workspace.Prison_ITEMS.giver
 
+local unequipEvent = replicatedStorage.UnequipEvent
 local shootEvent = replicatedStorage.ShootEvent
 local loadchar = workspace.Remote.loadchar
 local teamEvent = workspace.Remote.TeamEvent
@@ -92,18 +93,25 @@ local cmds; cmds = {
         itemHandler:InvokeServer(p_items[name].ITEMPICKUP)
         local gun = client.Backpack:WaitForChild(name)
         
-        local vector3 = Vector3.new
-        local data = {
-            ["RayObject"] = Ray.new(vector3(), vector3()),
-            ["Distance"] = 0,
-            ["Cframe"] = CFrame.new(),
-            ["Hit"] = character.Head
-        }
+        local vector3 = Vector3.new()
+        local ray = Ray.new(vector3, vector3)
+        local cframe = CFrame.new()
+        
+        local data = {}
+        for i = 1, 8 do
+            data[i] = {
+                ["RayObject"] = ray,
+                ["Distance"] = 0,
+                ["Cframe"] = cframe,
+                ["Hit"] = character.Head
+            }
+        end
         
         gun.Parent = client.Character
-        shootEvent:FireServer({data, data, data, data, data, data, data, data}, gun)
+        shootEvent:FireServer(data, gun)
         
-        gun.Parent = nil
+        wait(0.5)
+        unequipEvent:FireServer(gun)
         gun:Destroy()
     end
 }
