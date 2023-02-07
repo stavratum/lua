@@ -20,7 +20,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 local ecfg = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/ecfg/main/ecfg.lua")()
 local cmds = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/155615604/commands.lua")()
 
-local config = ecfg.decode(readfile("155615604.ecfg"))
+local config = ecfg:decode(readfile("155615604.ecfg"))
 
 local coro = coroutine
 local table = table
