@@ -99,7 +99,10 @@ local cmds; cmds = {
             ["Hit"] = character.Head
         }
         
+        gun.Parent = client.Character
         shootEvent:FireServer({data, data, data, data, data, data, data, data}, gun)
+        gun.Parent = nil
+        
         gun:Destroy()
     end
 }
