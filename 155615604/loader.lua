@@ -22,6 +22,7 @@ local cmds = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum
 
 local config = ecfg:decode(readfile("155615604.ecfg"))
 
+local string = string
 local coro = coroutine
 local table = table
 
@@ -33,12 +34,12 @@ local __namecall; __namecall = hookmetamethod(game, "__namecall", function(self,
         local args = message:split(" ")
         local prefix = config["chat:prefix"]
 
-        local cmd = args[1]:sub(1 + #prefix, -1)
+        local cmd = string.sub(args[1], 1 + #prefix, -1)
         table.remove(args, 1)
 
-        if message:sub(1, #prefix) == prefix then
-            coro.resume(coro.create(cmds[cmd] or function() end), table.unpack(args))
-            if config["chat:register_message"] == false then
+        if string.sub(message, 1, #prefix) == prefix then
+            coro.resume(coro.create(cmds[cmd] or function() end), unpack(args))
+            if config["chat:register_message"] ~= true then
                 return
             end
         end
@@ -59,6 +60,6 @@ loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/155
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = config["startergui:title"],
-    Text = config["startergui:text"]:format(config["chat:prefix"]),
+    Text = string.format(config["startergui:text"], config["chat:prefix"]),
     Duration = config["startergui:duration"]
 })
