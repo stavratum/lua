@@ -41,11 +41,12 @@ local PlayerGui = Client.PlayerGui
 local set_identity = (syn and syn.set_thread_identity or setidentity or setthreadcontext)
 local random = (meth and meth or math).random
 local pairs = pairs
-local get_signal_function
-local Roll do 
+local ipairs = ipairs
+
+local get_signal_function, Roll do 
     get_signal_function = function(Signal, Target, _)
         set_identity(2)
-        for index, connection in pairs( getconnections(Signal) ) do
+        for index, connection in ipairs( getconnections(Signal) ) do
             if getfenv(connection.Function).script == Target then
                 _ = connection.Function
             end 
@@ -96,7 +97,7 @@ local function onChildAdded(Object)
     local Chart = {}
     local IncomingNotes = {}
     
-    local Song, SongData
+    local Song, SongData, PBSpeed
     local Stage = Object.Stage.Value
     local Side = Object.PlayerSide.Value
     
@@ -110,6 +111,7 @@ local function onChildAdded(Object)
         TimePast.Changed:Wait()
     end
     
+    PBSpeed = Object.Config.PlaybackSpeed.Value
     Song = Stage.Config.Song.Value
     SongData = Util.getSong(Song)
     convert = require(Object.Modules.Functions).notetypeconvert
@@ -119,12 +121,12 @@ local function onChildAdded(Object)
         Song:FindFirstChild"MineNotes" or Song.Parent:FindFirstChild"GimmickNotes"
         or Song.Parent:FindFirstChild"MineNotes" or Song.Parent:FindFirstChild"MultipleGimmickNotes"
     
-    for _, connection in pairs(getconnections(Object.Events.UserInput.OnClientEvent)) do 
+    for _, connection in ipairs(getconnections(Object.Events.UserInput.OnClientEvent)) do 
         connection:Disable()
     end
     
     
-    for Index, Note in pairs(Util.parse( SongData )) do
+    for Index, Note in ipairs(Util.parse( SongData )) do
         local Note_1 = Note[1]
         local Key, _, HellNote = convert(Note_1[2], Note_1[4])
         Key = type(Key) == "string" and Key or "|"
@@ -132,7 +134,7 @@ local function onChildAdded(Object)
         local function add()
             Chart[#Chart + 1] = {
                 Length = Note[1][3],
-                At = Note[1][1],
+                At = Note[1][1] / PBSpeed,
                 Key = Key:split"_"[1]
             }
         end
@@ -160,7 +162,7 @@ local function onChildAdded(Object)
         add()
     end
     
-    for i,v in pairs(Chart) do
+    for i,v in ipairs(Chart) do
         IncomingNotes[v.Key] = (IncomingNotes[v.Key] or {})
         if v.At > TimePast.Value * 1000 then 
             IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 20, tonumber(v.Length) and (v.Length / 1000) or 0 }
