@@ -123,11 +123,11 @@ local cmds; cmds = {
             local pickup = p_items[name].ITEMPICKUP
             
             getItem(humanoidrootpart, pickup)
-            humanoid:SetState(running)
+            humanoid:ChangeState(running)
             gun = backpack:WaitForChild(name)
             
             humanoidrootpart.CFrame = cframe
-            humanoid:SetState(running)
+            humanoid:ChangeState(running)
         end
         
         local ray = Ray(Vector3(), Vector3())
