@@ -6,7 +6,7 @@ local Vector3 = Vector3.new
 local CFrame = CFrame.new
 local Ray = Ray.new
 
-local enum = enum
+local enum = Enum
 local string = string
 local table = table
 
@@ -116,14 +116,18 @@ local cmds; cmds = {
         
         if gun == nil then 
             local humanoidrootpart = body.HumanoidRootPart
+            local humanoid = body.Humanoid
+            local running = enum.HumanoidStateType.Running
+            
             local cframe = humanoidrootpart.CFrame
             local pickup = p_items[name].ITEMPICKUP
             
             getItem(humanoidrootpart, pickup)
+            humanoid:SetState(running)
             gun = backpack:WaitForChild(name)
             
             humanoidrootpart.CFrame = cframe
-            body.Humanoid:SetState(enum.HumanoidStateType.Running)
+            humanoid:SetState(running)
         end
         
         local ray = Ray(Vector3(), Vector3())
