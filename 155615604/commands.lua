@@ -13,7 +13,6 @@ local p_items = workspace.Prison_ITEMS.giver
 
 local unequipEvent = replicatedStorage.UnequipEvent
 local shootEvent = replicatedStorage.ShootEvent
-local loadchar = workspace.Remote.loadchar
 local teamEvent = workspace.Remote.TeamEvent
 local itemHandler = workspace.Remote.ItemHandler
 
@@ -56,7 +55,7 @@ local cmds; cmds = {
         local character = client.Character
         local cframe = character.HumanoidRootPart.CFrame
         
-        loadchar:InvokeServer(client)
+        teamEvent:FireServer(client.Team.Color)
         while character == client.Character do
             client:GetPropertyChangedSignal"Character":Wait()
         end
@@ -69,7 +68,6 @@ local cmds; cmds = {
         
         if color ~= -1 then
             teamEvent:FireServer(colors[color])
-            spawn(cmds["reload"])
         end
     end,
     ["guns"] = function()
