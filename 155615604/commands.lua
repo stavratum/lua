@@ -7,6 +7,7 @@ local Vector3 = Vector3.new
 local CFrame = CFrame.new
 local Ray = Ray.new
 
+local enum = enum
 local string = string
 local table = table
 
@@ -108,18 +109,19 @@ local cmds; cmds = {
         if not character or character:FindFirstChild"ForceField" then return end
         
         local name = "Remington 870"
-        local gun = backpack:FindFirstChild(name) or character:FindFirstChild(name)
+        local gun = backpack:FindFirstChild(name) or client.Character:FindFirstChild(name)
         local state = gun and gun.Parent
         
         if gun == nil then 
-            local humanoidrootpart = character.HumanoidRootPart
+            local humanoidrootpart = client.Character.HumanoidRootPart
             local cframe = humanoidrootpart.CFrame
             local pickup = p_items[name].ITEMPICKUP
             
             getItem(humanoidrootpart, pickup)
-            local gun = backpack:WaitForChild(name)
+            gun = backpack:WaitForChild(name)
             
             humanoidrootpart.CFrame = cframe
+            client.Character.Humanoid:SetState(enum.HumanoidStateType.Running)
         end
         
         local ray = Ray(Vector3(), Vector3())
@@ -140,7 +142,7 @@ local cmds; cmds = {
         
         if not state then
             wait(0.05)
-            gun.Parent = client.Backpack
+            gun.Parent = backpack
             unequipEvent:FireServer(gun)
             wait(0.01)
             gun:Destroy()
