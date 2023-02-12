@@ -1,7 +1,6 @@
 local players = game:GetService"Players"
 local replicatedStorage = game:GetService"ReplicatedStorage"
 local client = players.LocalPlayer
-local backpack = client.Backpack
 
 local Vector3 = Vector3.new
 local CFrame = CFrame.new
@@ -108,12 +107,15 @@ local cmds; cmds = {
         local character = player.Character
         if not character or character:FindFirstChild"ForceField" then return end
         
+        local backpack = client.Backpack
+        local body = client.Character
+        
         local name = "Remington 870"
-        local gun = backpack:FindFirstChild(name) or client.Character:FindFirstChild(name)
+        local gun = backpack:FindFirstChild(name) or body:FindFirstChild(name)
         local state = gun and gun.Parent
         
         if gun == nil then 
-            local humanoidrootpart = client.Character.HumanoidRootPart
+            local humanoidrootpart = body.HumanoidRootPart
             local cframe = humanoidrootpart.CFrame
             local pickup = p_items[name].ITEMPICKUP
             
@@ -121,7 +123,7 @@ local cmds; cmds = {
             gun = backpack:WaitForChild(name)
             
             humanoidrootpart.CFrame = cframe
-            client.Character.Humanoid:SetState(enum.HumanoidStateType.Running)
+            body.Humanoid:SetState(enum.HumanoidStateType.Running)
         end
         
         local ray = Ray(Vector3(), Vector3())
