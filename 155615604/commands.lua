@@ -1,6 +1,7 @@
 local players = game:GetService"Players"
 local replicatedStorage = game:GetService"ReplicatedStorage"
 local client = players.LocalPlayer
+local backpack = client.Backpack
 
 local Vector3 = Vector3.new
 local CFrame = CFrame.new
@@ -48,6 +49,11 @@ local function indexOf(array, value)
     return -1
 end
 
+local function getItem(humanoidrootpart, item) 
+    humanoidrootpart.CFrame = item.CFrame
+    itemHandler:InvokeServer(item)
+end
+
 --
 
 local cmds; cmds = {
@@ -71,17 +77,27 @@ local cmds; cmds = {
         end
     end,
     ["guns"] = function()
-        local invoke = itemHandler.InvokeServer
+        local humanoidrootpart = client.Character.HumanoidRootPart
+        local cframe = humanoidrootpart.CFrame
+        
         for _,v in ipairs({"Remington 870", "M9", "AK-47"}) do
-            spawn(invoke, itemHandler, p_items[v].ITEMPICKUP);
+            local pickup = p_items[v].ITEMPICKUP
+            getItem(humanoidrootpart, pickup)
         end
+        
+        humanoidrootpart.CFrame = cframe;
     end,
     ["gun"] = function(gun)
         local index = indexOf({"rem", "remington", "m9", "ak", "ak-47",}, string.lower(gun))
         local ref = {"Remington 870", "Remington 870", "M9", "AK-47", "AK-47"}
         
         if index ~= -1 then
-            itemHandler:InvokeServer(p_items[ ref[index] ].ITEMPICKUP)
+            local humanoidrootpart = client.Character.HumanoidRootPart
+            local cframe = humanoidrootpart.CFrame
+            
+            local pickup = p_items[ ref[index] ].ITEMPICKUP
+            getItem(humanoidrootpart, pickup)
+            humanoidrootpart.CFrame = cframe
         end
     end,
     ["kill"] = function(playerName)
@@ -92,8 +108,19 @@ local cmds; cmds = {
         if not character or character:FindFirstChild"ForceField" then return end
         
         local name = "Remington 870"
-        itemHandler:InvokeServer(p_items[name].ITEMPICKUP)
-        local gun = client.Backpack:WaitForChild(name)
+        local gun = backpack:FindFirstChild(name) or character:FindFirstChild(name)
+        local state = gun and gun.Parent
+        
+        if gun == nil then 
+            local humanoidrootpart = character.HumanoidRootPart
+            local cframe = humanoidrootpart.CFrame
+            local pickup = p_items[name].ITEMPICKUP
+            
+            getItem(humanoidrootpart, pickup)
+            local gun = backpack:WaitForChild(name)
+            
+            humanoidrootpart.CFrame = cframe
+        end
         
         local ray = Ray(Vector3(), Vector3())
         local cframe = CFrame()
@@ -111,10 +138,16 @@ local cmds; cmds = {
         gun.Parent = client.Character
         shootEvent:FireServer(data, gun)
         
-        wait(0.05)
-        unequipEvent:FireServer(gun)
-        wait(0.01)
-        gun:Destroy()
+        if not state then
+            wait(0.05)
+            gun.Parent = client.Backpack
+            unequipEvent:FireServer(gun)
+            wait(0.01)
+            gun:Destroy()
+        else 
+            gun.Parent = state;
+            unequipEvent:FireServer(gun)
+        end
     end
 }
 
