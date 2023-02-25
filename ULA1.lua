@@ -221,13 +221,13 @@ end
 
 local function getFunctions(table)
     function table:Destroy()
-        self.instance:Destroy()
-        Objects[self.instance] = nil
+        self.Instance:Destroy()
+        Objects[self.Instance] = nil
     end
 
     function table:AddButton(text)
         local button = makeButton(text)
-        insert(self.instance, button.instance)
+        insert(self.Instance, button.Instance)
         table.insert(self.Children, button)
 
         return button
@@ -235,7 +235,7 @@ local function getFunctions(table)
 
     function table:AddToggle(text)
         local toggle = makeToggle(text)
-        insert(self.instance, toggle.instance)
+        insert(self.Instance, toggle.Instance)
         table.insert(self.Children, toggle)
 
         return toggle
