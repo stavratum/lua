@@ -48,7 +48,7 @@ end
 
 --
 
-local function makeFolder(name)
+local function makeFolder(text)
     local instance = Instance("Frame")
     instance.BackgroundColor3 = Colors[1]
     instance.BorderSizePixel = 0
@@ -68,7 +68,7 @@ local function makeFolder(name)
     textLabel.TextColor3 = Colors.WHITE
     textLabel.TextSize = 16
     textLabel.Font = Enum.Font.GothamBold
-    textLabel.Text = string.upper(name or "TextLabel")
+    textLabel.Text = string.upper(text or "TextLabel")
     textLabel.Size = UDim2(0, 190, 0, 24)
     textLabel.Position = UDim2(0, 0, 0, 0)
     textLabel.Parent = instance
@@ -245,10 +245,10 @@ return {
     Colors = Colors,
     Objects = Objects,
     
-    makeFolder = function(text)
-        local folder = makeFolder(text)
-        folder.instance.Parent = folders
+    MakeFolder = function(text)
+        local Object = makeFolder(text)
+        Object.Instance.Parent = folders
 
-        return getFunctions(folder)
+        return getFunctions(Object)
     end
 }
