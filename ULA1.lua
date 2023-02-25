@@ -219,13 +219,13 @@ local function makeSlider(text, parameters)
     return instance
 end
 
-local function getFunctions(table)
-    function table:Destroy()
+local function getFunctions(object)
+    function object:Destroy()
         self.Instance:Destroy()
         Objects[self.Instance] = nil
     end
 
-    function table:AddButton(text)
+    function object:AddButton(text)
         local button = makeButton(text)
         insert(self.Instance, button.Instance)
         table.insert(self.Children, button)
@@ -233,7 +233,7 @@ local function getFunctions(table)
         return button
     end
 
-    function table:AddToggle(text)
+    function object:AddToggle(text)
         local toggle = makeToggle(text)
         insert(self.Instance, toggle.Instance)
         table.insert(self.Children, toggle)
@@ -241,7 +241,7 @@ local function getFunctions(table)
         return toggle
     end
     
-    return table
+    return object
 end
 
 return {
