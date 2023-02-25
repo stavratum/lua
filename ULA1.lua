@@ -31,8 +31,8 @@ local folders = Instance("Folder", UI)
 folders.Name = "Folders"
 
 xpcall(
-    function() ui.Parent = game:GetService"CoreGui" end,
-    function() ui.Parent = LP.PlayerGui end
+    function() UI.Parent = game:GetService"CoreGui" end,
+    function() UI.Parent = LP.PlayerGui end
 )
 
 --
