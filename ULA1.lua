@@ -76,13 +76,15 @@ local function makeFolder(text)
     local uiCorner = Instance("UICorner")
     uiCorner.CornerRadius = UDim(0, 3)
     uiCorner.Parent = instance
+    
+    local object = {}
+    object.Instance = instance
+    object.Class = "Folder"
+    object.Children = {}
+    
+    Objects[instance] = object
 
-    Objects[instance] = {
-        Class = "Folder",
-        Children = {}
-    }
-
-    return instance
+    return object
 end
 
 local function makeSection(...)
@@ -226,6 +228,7 @@ local function getFunctions(table)
     function table:AddButton(text)
         local button = makeButton(text)
         insert(self.instance, button.instance)
+        table.insert(self.Children, button)
 
         return button
     end
@@ -233,6 +236,7 @@ local function getFunctions(table)
     function table:AddToggle(text)
         local toggle = makeToggle(text)
         insert(self.instance, toggle.instance)
+        table.insert(self.Children, toggle)
 
         return toggle
     end
