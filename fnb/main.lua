@@ -83,6 +83,7 @@ local function onChildAdded(Object)
     if (not Object) then return end
     if (Object.name ~= "FNFEngine") then return end
     
+    Object = Object:WaitForChild("Engine")
     TEMP:Clear()
     
     local convert
