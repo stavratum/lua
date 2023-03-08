@@ -8,7 +8,6 @@ local Discord = import("Discord")
 local Util = import("fnb/util")
 local UwUware = import("fnb/uwuware")
 
-
 local Flags = UwUware.flags
 local Chances = {
     Marvelous = 100,
@@ -24,19 +23,16 @@ local Offsets = {
     Good = 0.06,
     Ok = 0.11,
     Bad = 0.155,
-    Miss = "TIM ALERT TIM ALERT TIM ALERT"
+    Miss = 1
 }
-
 
 local VirtualInputManager = (getvirtualinputmanager or game.GetService)(game, "VirtualInputManager")
 local InputService = game:GetService "UserInputService"
 local RunService = game:GetService "RunService"
 local Players = game:GetService "Players"
 
-
 local Client = Players.LocalPlayer
 local PlayerGui = Client.PlayerGui
-
 
 local set_identity = (syn and syn.set_thread_identity or setidentity or setthreadcontext)
 local random = (meth and meth or math).random
@@ -44,15 +40,18 @@ local pairs = pairs
 local ipairs = ipairs
 
 local get_signal_function, Roll do 
-    get_signal_function = function(Signal, Target, _)
+    get_signal_function = function(Signal, Target)
+        local callback
+        
         set_identity(2)
         for index, connection in ipairs( getconnections(Signal) ) do
             if getfenv(connection.Function).script == Target then
-                _ = connection.Function
+                callback = connection.Function
+                break
             end 
         end
         set_identity(7)
-        return _;
+        return callback;
     end
     
     Roll = function()
@@ -71,7 +70,7 @@ local get_signal_function, Roll do
             end
         end
         
-        return Offsets.Marvelous
+        return 0
     end
 end
 
@@ -89,7 +88,6 @@ local function onChildAdded(Object)
     local convert
     local spawn = task.spawn
     local delay = task.delay
-    local wait = task.wait
     
     local Begin = Enum.UserInputState.Begin
     local End = Enum.UserInputState.End
@@ -98,7 +96,7 @@ local function onChildAdded(Object)
     local Chart = {}
     local IncomingNotes = {}
     
-    local Song, SongData, PBSpeed
+    local Song, SongData, SongOffset, PBSpeed
     local Stage = Object.Stage.Value
     local Side = Object.PlayerSide.Value
     
@@ -112,15 +110,31 @@ local function onChildAdded(Object)
         TimePast.Changed:Wait()
     end
     
+    local function Find(...)
+        local tostring = tostring 
+        local table_find = table.find
+        
+        for i,v in ipairs(Song:GetDescendants()) do
+            if table_find({...}, tostring(v)) then
+                return v
+            end
+        end
+        
+        for i,v in ipairs(Song.Parent:GetDescendants()) do
+            if table_find({...}, tostring(v))  then
+                return v
+            end
+        end
+    end
+    
     PBSpeed = Object.Config.PlaybackSpeed.Value
     Song = Stage.Config.Song.Value
     SongData = Util.getSong(Song)
+    SongOffset = Find("Offset")
     convert = require(Object.Modules.Functions).notetypeconvert
     
-    local PoisonNotes =
-        Song:FindFirstChild"MultipleGimmickNotes" or Song:FindFirstChild"GimmickNotes" or
-        Song:FindFirstChild"MineNotes" or Song.Parent:FindFirstChild"GimmickNotes"
-        or Song.Parent:FindFirstChild"MineNotes" or Song.Parent:FindFirstChild"MultipleGimmickNotes"
+    local Offset = Client.Input.Offset.Value + SongOffset.Value
+    local PoisonNotes = Find("MultipleGimmickNotes", "GimmickNotes", "MineNotes")
     
     for _, connection in ipairs(getconnections(Object.Events.UserInput.OnClientEvent)) do 
         connection:Disable()
@@ -135,7 +149,7 @@ local function onChildAdded(Object)
         local function add()
             Chart[#Chart + 1] = {
                 Length = Note[1][3],
-                At = Note[1][1] / PBSpeed,
+                At = Note[1][1] / PBSpeed - Offset,
                 Key = Key:split"_"[1]
             }
         end
@@ -166,7 +180,7 @@ local function onChildAdded(Object)
     for i,v in ipairs(Chart) do
         IncomingNotes[v.Key] = (IncomingNotes[v.Key] or {})
         if v.At > TimePast.Value * 1000 then 
-            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 20, tonumber(v.Length) and (v.Length / 1000) or 0 }
+            IncomingNotes[v.Key][#IncomingNotes[v.Key] + 1] = { v.At - 22.5, tonumber(v.Length) and (v.Length / 1000) or 0 }
         end
     end
     
@@ -179,15 +193,15 @@ local function onChildAdded(Object)
         local input = Util.getKeycode(Key, len)
         local index = 1
         
-        local function Update()
+        local function Check()
             local Arrow = chart[index]
             
             if Arrow and (Arrow[1] <= TimePast.Value * 1000) then
-                index += 1
+                index = index + 1
                 
                 if (not Flags.IsAnimeFan) then return end
                 local Offset = Roll()
-                if (Offset == Offsets.Miss) then return end
+                if (Offset == 1) then return end
                 
                 if (Flags.FireDirectly) then 
                     set_identity(2)   
@@ -200,17 +214,17 @@ local function onChildAdded(Object)
                     delay(Offset, VirtualInputManager.SendKeyEvent, VirtualInputManager, true, input, false, nil)
                     delay(Arrow[2] + Offset, VirtualInputManager.SendKeyEvent, VirtualInputManager, false, input, false, nil)
                 end
+                
+                spawn(Check)
             end
         end
         
-        TEMP:Insert(RunService.RenderStepped, Update)
+        TEMP:Insert(RunService.RenderStepped, Check)
     end
-    
 end
 
 MAIN:Insert(PlayerGui.ChildAdded, onChildAdded)
 task.spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine")
-
 
 local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
     local Configuration = Window:AddFolder("Config") do 
@@ -233,7 +247,7 @@ local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
             UwUware.base:Destroy()
         end
     })
-    Window:AddButton { text = "Copy Discord Tags", callback = function() (setclipboard or print)(Discord) end }
+    Window:AddButton { text = "Copy Discord Invite", callback = function() (setclipboard or print)(Discord) end }
     
     UwUware:Init()
 end
