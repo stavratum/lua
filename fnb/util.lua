@@ -3,7 +3,7 @@ local HttpService = game:GetService"HttpService"
 local KeyCode = Enum.KeyCode
 local Keys = {
     [4] = { Left = "Left", Down = "Down", Up = "Up", Right = "Right" },
-    [5] = { Left = "Left", Down = "Down", Space = "Space", Up = "Up", Right = "Right" },
+    [5] = { D = "L2", F = "L1", Space = "Space", J = "R1", K = "R2" },
     [6] = { S = "L3", D = "L2", F = "L1", J = "R1", K = "R2", L = "R3" },
     [7] = { S = "L3", D = "L2", F = "L1", Space = "Space", J = "R1", K = "R2", L = "R3" },
     [8] = { A = "L4", S = "L3", D = "L2", F = "L1", H = "R1", J = "R2", K = "R3", L = "R4" },
