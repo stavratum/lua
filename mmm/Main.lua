@@ -1,124 +1,162 @@
 local discord = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/Discord.lua")()
-local uwuware, connected = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')(), {} do
-    local Window = uwuware:CreateWindow'AFC | MMM AP'
-    local Main = Window:AddFolder'Main'
-    Main:AddToggle{text = 'Toggle autoplayer',flag = 'yes',state = true}
-    Main:AddBind{text = 'Hide GUI',key = Enum.KeyCode.Quote,
-        callback = function()uwuware:Close()end
-    }
-    Main:AddButton{text = 'Unload script',
-        callback = function()
-            uwuware.base:Destroy()
-            for _,Function in pairs(connected) do
-                Function:Disconnect()
-            end
-            script:Destroy()
-        end
-    }
-    local Credits = Window:AddFolder'Credits'
-    Credits:AddButton{text = 'Copy discord',
-        callback = function()
-            (setclipboard or print)(discord);
-        end
-    }
-    Credits:AddLabel{text = "Updated: 8/8/2022"}
-    Credits:AddLabel{text = "stavratum#6591: Autoplayer"}
-    Credits:AddLabel{text = "cup#7282: UI setup"}
-    uwuware:Init()  
-end
+local UwUware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')()
 
-local game = game
+local window = UwUware:CreateWindow("Monday Morning Misery")
 
-local client = game:GetService'Players'.LocalPlayer
+window:AddToggle({
+    text = "Toggle Autoplayer",
+    flag = "IsAnimeFan",
+    state = true
+})
 
-local manager = game:GetService'VirtualInputManager'
-local runservice = game:GetService'RunService'
-
-local notes = {}
-
-local _0
-_0 = hookmetamethod(game,"__newindex",
-    function(...)
-        local self, index, value = ...
-        if table.find({'name', 'Name'}, index) and value == '' then return end 
-        return _0(...)
+window:AddBind({
+    key = Enum.KeyCode.Quote,
+    text = "Close GUI",
+    callback = function()
+        UwUware:Close()
     end
-)
+})
 
-for _,v in pairs(client.PlayerGui.ScreenGui:GetChildren()) do
-    if v:FindFirstChildOfClass'TextLabel' then
-        print(v)
-        v.ChildAdded:connect(
-            function(_)
-                if not _:FindFirstChild'OpponentStats' then return end
-                
-                local side
-                for i,v in pairs(game:GetService'ReplicatedStorage':GetDescendants())do
-                    if v:IsA'ObjectValue' and v.Value == client then
-                        side = ({'Left';'Right'})[v.PlayerType.Value]
-                        break
-                    end
+window:AddButton({
+    text = "Unload Script",
+    callback = function()
+        clear()
+
+        UwUware.base:Destroy()
+        UwUware = nil
+    end
+})
+
+window:AddButton({
+    text = "Copy Discord Invite",
+    callback = function()
+        setclipboard(discord)
+    end
+})
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local replicatedstorage = game:GetService "ReplicatedStorage"
+local manager = game:GetService "VirtualInputManager"
+local runservice = game:GetService "RunService"
+local players = game:GetService "Players"
+
+local options = getrenv()._G.PlayerData.Options
+local flags = UwUware.flags
+local connections = { }
+local codes = {
+    [9] = {"Left", "Down", "Up", "Right", "Space", "Left2", "Down2", "Up2", "Right2"},
+	[8] = {"Left", "Down", "Up", "Right", "Left2", "Down2", "Up2", "Right2"},
+	[7] = {"Left", "Up", "Right", "Space", "Left2", "Down", "Right2"},
+    [6] = {"Left", "Up", "Right", "Left2", "Down", "Right2"},
+    [5] = {"Left", "Down", "Space", "Up", "Right"},
+    [4] = {"Left", "Down", "Up", "Right"}
+}
+
+function main()
+    local match = getMatch()
+    if not match then return end
+    
+	repeat wait(1) until rawget(match, 'Songs')
+
+    local side = getSide(match.PlayerType)
+    local arrowGui = match.ArrowGui
+
+    local sideFrame = arrowGui[side]
+    local container = sideFrame.MainArrowContainer
+    local longNotes = sideFrame.LongNotes
+    local notes = sideFrame.Notes
+
+    local maxArrows = match.MaxArrows
+    local codes = codes [ maxArrows ]
+    local controls = maxArrows < 5 and options
+        or options.ExtraKeySettings [ tostring(maxArrows) ]
+
+    container = sort(container)
+    longNotes = sort(longNotes)
+    notes = sort(notes)
+	
+    for index, holder in ipairs(notes) do
+        local offset = 10 * maxArrows
+
+		local name = codes[index]
+        local longNote = longNotes[index]
+        local fakeNote = container[index]
+		local keycode = controls[name .. "Key"]
+
+        table.insert(connections,
+            holder.ChildAdded:Connect(function(note)
+                while (fakeNote.AbsolutePosition - note.AbsolutePosition).Magnitude >= offset do
+                    runservice.RenderStepped:Wait()
                 end
                 
-                local Main = _:WaitForChild(tostring(side), 120)
-                
-                if not Main then return end
-                
-                local Notes = Main.Notes
-                local LongNotes = Main.LongNotes
-                
-                local Downscroll = getrenv()._G.PlayerData.Options.DownScroll
-                
-                local Keys = getrenv()._G.PlayerData.Options.ExtraKeySettings
-                Keys['4'] = {
-                    LeftKey = 'Left';
-                    RightKey = 'Right';
-                    UpKey = 'Up';
-                    DownKey = 'Down';
-                }
-                
-               connected[#connected + 1] = Notes.ChildAdded:Connect(
-                    function(Holder)
-                        Holder.ChildAdded:Connect(
-                            function(note)
-                                if Downscroll then
-                                    repeat runservice.RenderStepped:Wait() until note.AbsolutePosition.Y >= Main['    '][Holder.name].AbsolutePosition.Y
-                                else 
-                                    repeat runservice.RenderStepped:Wait() until Main['    '][Holder.name].AbsolutePosition.Y >= note.AbsolutePosition.Y
-                                end
-                                
-                                if uwuware.flags.yes then
-                                    manager:SendKeyEvent(true, Keys[tostring(#Notes:GetChildren())][Holder.name .. 'Key'] ,false,nil)
-                                    
-                                    if #LongNotes[Holder.name]:GetChildren() == 0 then
-                                        manager:SendKeyEvent(false, Keys[tostring(#Notes:GetChildren())][Holder.name .. 'Key'] ,false,nil)
-                                    end
-                                end
-                            end
-                        )
-                    end
-                )
-                
-                connected[#connected + 1] = LongNotes.ChildAdded:Connect(
-                    function(Holder)
-                        Holder.ChildAdded:Connect(
-                            function(Sustain)
-                                local Prev = Sustain.AbsolutePosition.Y
-                                repeat
-                                    wait()
-                                    if Prev == Sustain.AbsolutePosition.Y then break end
-                                    Prev = Sustain.AbsolutePosition.Y
-                                until not Sustain.Visible
-                                Sustain:Destroy()
-                                if uwuware.flags.yes then
-                                    manager:SendKeyEvent(false, Keys[tostring(#Notes:GetChildren())][Holder.name .. 'Key'] ,false,nil)
-                                end
-                            end
-                        )
-                    end
-                )
-            end
+                if not flags.IsAnimeFan then return end
+                manager:SendKeyEvent(true, keycode, false, nil)
+
+                if #longNote:GetChildren() == 0 then
+                    manager:SendKeyEvent(false, keycode, false, nil)
+                end
+            end)
         )
-        
     end
+	
+    for index, holder in ipairs(longNotes) do
+		local name = codes[index]
+		local keycode = controls[name .. "Key"]
+
+        table.insert(connections,
+            holder.ChildRemoved:Connect(function()
+                if not flags.IsAnimeFan then return end
+                manager:SendKeyEvent(false, keycode, false, nil)
+            end)
+        )
+    end
+
+    return match
+end
+
+function sort(instance)
+	local children = instance:GetChildren()
+	
+	table.sort(children, function(a, b)
+		return a.AbsolutePosition.X < b.AbsolutePosition.X
+	end)
+	
+	return children
+end
+
+function getSide(playerType)
+    local map = {"Left", "Right"}
+    return map[playerType]
+end
+
+function getMatch()
+    for i,v in ipairs(getgc(true)) do
+        if type(v) == 'table' and rawget(v, 'MatchFolder') then
+            return v
+        end
+    end
+end
+
+function clear()
+    for i,v in ipairs(connections) do
+        v:Disconnect()
+    end
+
+    table.clear(connections)
+end
+
+--
+
+UwUware:Init()
+
+while true do wait(1)
+    if UwUware == nil then break else
+        clear()
+    end
+
+    local match = main()
+    if not match then continue end
+
+    match.MatchFolder.Destroying:Wait()
 end
