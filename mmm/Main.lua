@@ -46,8 +46,8 @@ local flags = UwUware.flags
 local connections = { }
 local codes = {
     [9] = {"Left", "Down", "Up", "Right", "Space", "Left2", "Down2", "Up2", "Right2"},
-	[8] = {"Left", "Down", "Up", "Right", "Left2", "Down2", "Up2", "Right2"},
-	[7] = {"Left", "Up", "Right", "Space", "Left2", "Down", "Right2"},
+    [8] = {"Left", "Down", "Up", "Right", "Left2", "Down2", "Up2", "Right2"},
+    [7] = {"Left", "Up", "Right", "Space", "Left2", "Down", "Right2"},
     [6] = {"Left", "Up", "Right", "Left2", "Down", "Right2"},
     [5] = {"Left", "Down", "Space", "Up", "Right"},
     [4] = {"Left", "Down", "Up", "Right"}
@@ -57,7 +57,7 @@ function main()
     local match = getMatch()
     if not match then return end
     
-	repeat wait(1) until rawget(match, 'Songs')
+    repeat wait(1) until rawget(match, 'Songs')
 
     local side = getSide(match.PlayerType)
     local arrowGui = match.ArrowGui
@@ -79,10 +79,10 @@ function main()
     for index, holder in ipairs(notes) do
         local offset = 10 * maxArrows
 
-		local name = codes[index]
+        local name = codes[index]
         local longNote = longNotes[index]
         local fakeNote = container[index]
-		local keycode = controls[name .. "Key"]
+        local keycode = controls[name .. "Key"]
 
         table.insert(connections,
             holder.ChildAdded:Connect(function(note)
@@ -101,8 +101,8 @@ function main()
     end
 	
     for index, holder in ipairs(longNotes) do
-		local name = codes[index]
-		local keycode = controls[name .. "Key"]
+        local name = codes[index]
+        local keycode = controls[name .. "Key"]
 
         table.insert(connections,
             holder.ChildRemoved:Connect(function()
@@ -116,13 +116,13 @@ function main()
 end
 
 function sort(instance)
-	local children = instance:GetChildren()
-	
-	table.sort(children, function(a, b)
-		return a.AbsolutePosition.X < b.AbsolutePosition.X
-	end)
-	
-	return children
+    local children = instance:GetChildren()
+    
+    table.sort(children, function(a, b)
+        return a.AbsolutePosition.X < b.AbsolutePosition.X
+    end)
+    
+    return children
 end
 
 function getSide(playerType)
