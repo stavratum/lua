@@ -1,3909 +1,3606 @@
--- Decompiled with the Synapse X Luau decompiler.
+--// FNF Client
 
-local v1 = nil;
-script.Parent:WaitForChild("Config"):WaitForChild("ObjectCount");
-while true do
-	task.wait();
-	if script.Parent.Config.ObjectCount.Value > 0 and script.Parent.Config.ObjectCount.Value <= #script.Parent:GetDescendants() then
-		break;
-	end;
-end;
-while true do
-	task.wait();
-	if script.Parent.Config.ServerSetup.Value == true then
-		break;
-	end;
-end;
-local l__LocalPlayer__2 = game.Players.LocalPlayer;
-local l__Parent__3 = script.Parent;
-local l__Config__4 = l__Parent__3.Config;
-local l__Events__5 = l__Parent__3.Events;
-local l__Value__6 = l__Parent__3.Stage.Value;
-local l__Game__7 = l__Parent__3.Game;
-local l__CameraPoints__8 = l__Value__6.CameraPoints;
-local v9 = Enum.EasingStyle.Sine;
-if l__LocalPlayer__2.Input.CamEaseStyle.Value ~= "Sine" then
-	for v10, v11 in pairs((Enum.EasingStyle:GetEnumItems())) do
-		if tostring(v11) == "Enum.EasingStyle." .. l__LocalPlayer__2.Input.CamEaseStyle.Value then
-			v9 = v11;
-		end;
-	end;
-end;
-local v12 = game.ReplicatedStorage.Modules.Conductor:Clone();
-v12.Parent = l__Parent__3;
-local v13 = require(v12);
-local v14 = require(game.ReplicatedStorage.Modules.Util);
-local v15 = require(game.ReplicatedStorage.Modules.TimingWindows);
-local v16 = require(game.ReplicatedStorage.Modules.FlxVel);
-local l__TweenService__17 = game:GetService("TweenService");
-local l__UserInputService__18 = game:GetService("UserInputService");
-local l__RunService__19 = game:GetService("RunService");
-local v20 = require(game.ReplicatedStorage.Modules.DebugLog);
-local v21 = require(game.ReplicatedStorage.Modules.Sprites.Sprite);
-local v22 = l__Game__7:FindFirstChild(l__Parent__3.PlayerSide.Value);
-l__Value__6.P1Board.G.Enabled = false;
-l__Value__6.P2Board.G.Enabled = false;
-l__Value__6.SongInfo.G.Enabled = false;
-l__Value__6.SongInfo.P1Icon.G.Enabled = false;
-l__Value__6.SongInfo.P2Icon.G.Enabled = false;
-l__Value__6.FlyingText.G.Enabled = false;
-l__Config__4.TimePast.Value = -40;
-for v23, v24 in pairs(l__CameraPoints__8:GetChildren()) do
-	v24.CFrame = v24.OriginalCFrame.Value;
-end;
-for v25, v26 in pairs({ l__Game__7.R, l__Game__7.L }) do
-	game.ReplicatedStorage.Misc.SplashContainer:Clone().Parent = v26;
-end;
-local v27 = {};
-local v28 = l__LocalPlayer__2.PlayerGui.GameUI:WaitForChild("SongSelect", 10);
-local l__EndScene__29 = l__LocalPlayer__2.PlayerGui.GameUI:FindFirstChild("EndScene");
-if l__EndScene__29 then
-	l__EndScene__29:Destroy();
-end;
-if not v28 then
-	warn("Infinite yield possible on song select menu. Please report this to a dev!");
-	v28 = l__LocalPlayer__2.PlayerGui.GameUI:WaitForChild("SongSelect");
-end;
-v28.StatsContainer.FCs.Text = "<font color='rgb(90,220,255)'>FCs</font>: " .. l__LocalPlayer__2.Input.Achievements.FCs.Value .. " | <font color='rgb(255, 225, 80)'>PFCs</font>: " .. l__LocalPlayer__2.Input.Achievements.PFCs.Value;
+script.Parent:WaitForChild("Config"):WaitForChild("ObjectCount")
+repeat task.wait() until script.Parent.Config.ObjectCount.Value > 0 and #script.Parent:GetDescendants() >= script.Parent.Config.ObjectCount.Value
+repeat task.wait() until script.Parent.Config.ServerSetup.Value == true
+
+--// Variables
+
+local player = game.Players.LocalPlayer
+local ui = script.Parent
+local config = ui.Config
+local events = ui.Events
+local stage = ui.Stage.Value
+local userinput = events.UserInput
+local side = ui.PlayerSide.Value
+local main = ui.Game
+local cameraPoints = stage.CameraPoints
+local easeStyle = Enum.EasingStyle.Sine
+if (player.Input.CamEaseStyle.Value ~= "Sine") then 
+	local array = Enum.EasingStyle:GetEnumItems()
+
+	for i, v in pairs(array) do
+		if tostring(v) == ("Enum.EasingStyle."..player.Input.CamEaseStyle.Value) then
+			easeStyle = v
+		end
+	end
+end
+
+local fakeConductor = game.ReplicatedStorage.Modules.Conductor:Clone(); fakeConductor.Parent = ui
+local Conductor = require(fakeConductor)
+local Util = require(game.ReplicatedStorage.Modules.Util)
+local TimingWindowStuff = require(game.ReplicatedStorage.Modules.TimingWindows)
+local FlxVel = require(game.ReplicatedStorage.Modules.FlxVel)
+
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local RUNS = game:GetService('RunService')
+
+local LOG = require(game.ReplicatedStorage.Modules.DebugLog)
+local Sprite = require(game.ReplicatedStorage.Modules.Sprites.Sprite)
+
+local Taiko = nil
+local ratingLabels = {}
+
+side = main:FindFirstChild(side)
+
+--// Startup
+
+local hitGraph = {}
+stage.P1Board.G.Enabled = false
+stage.P2Board.G.Enabled = false
+stage.SongInfo.G.Enabled = false
+stage.SongInfo.P1Icon.G.Enabled = false
+stage.SongInfo.P2Icon.G.Enabled = false
+stage.FlyingText.G.Enabled = false
+config.TimePast.Value = -40
+
+for _, cam in pairs(cameraPoints:GetChildren()) do cam.CFrame = cam.OriginalCFrame.Value end
+local lCameraCF, rCameraCF, cCameraCF = cameraPoints.L.CFrame, cameraPoints.R.CFrame, cameraPoints.C.CFrame
+
+for _, side in pairs({main.R, main.L}) do
+	local splashes = game.ReplicatedStorage.Misc.SplashContainer:Clone()
+	splashes.Parent = side
+end
+
+--// Post-Game Stuff
+
+local _acc_ = 100
+local iconData = {}
+
+local songSelect = player.PlayerGui.GameUI:WaitForChild("SongSelect", 10)
+local endscene = player.PlayerGui.GameUI:FindFirstChild("EndScene")
+if endscene then endscene:Destroy() end
+if not songSelect then warn("Infinite yield possible on song select menu. Please report this to a dev!"); songSelect = player.PlayerGui.GameUI:WaitForChild("SongSelect"); end
+
+--// fc shit
+songSelect.StatsContainer.FCs.Text = "<font color='rgb(90,220,255)'>FCs</font>: "..player.Input.Achievements.FCs.Value.." | <font color='rgb(255, 225, 80)'>PFCs</font>: "..player.Input.Achievements.PFCs.Value
+
+local accuracy, misses, combo, highcombo = {}, 0, 0, 0 --// set stats 
+local actualAccuracy, marv, sick, good, ok, bad = 0,0,0,0,0,0
+
+local function round(num, numDecimalPlaces)
+	local mult = 10^(numDecimalPlaces or 0)
+	return math.floor(num * mult + 0.5) / mult
+end
+
+local hitGraphModule = require(ui.Modules.HitGraph)
+local healthbarConfig = nil
+
+local playbackRate = 1
+local hasGimmickNotes = false
+
+local nps = 0
+local peakNps = 0
+local npsData = {}
+
 function updateData()
-	local v30 = 1 - 1;
-	while true do
-		if l__Value__6.Config["P" .. v30 .. "Stats"].Value ~= "" then
-			local v31 = game.HttpService:JSONDecode(l__Value__6.Config["P" .. v30 .. "Stats"].Value);
-			if v30 == 1 then
-				local v32 = "L";
-			else
-				v32 = "R";
-			end;
-			l__Game__7:FindFirstChild(v32).OpponentStats.Label.Text = "Accuracy: " .. v31.accuracy .. "% | Combo: " .. v31.combo .. " | Misses: " .. v31.misses;
-			l__Value__6.Config["P" .. v30 .. "Stats"].Value = "";
-		end;
-		if 0 <= 1 then
-			if v30 < 2 then
+	--print(data)
+	for i = 1, 2 do
+		if (stage.Config["P" .. i .. "Stats"].Value == "") then continue end
 
-			else
-				break;
-			end;
-		elseif 2 < v30 then
+		local data = game.HttpService:JSONDecode(stage.Config["P" .. i .. "Stats"].Value)
+		local label = main:FindFirstChild(i == 1 and "L" or "R").OpponentStats.Label
+		label.Text = "Accuracy: " .. data.accuracy .. "% | Combo: " .. data.combo .. " | Misses: " .. data.misses
+		stage.Config["P" .. i .. "Stats"].Value = ""
+	end
+end
 
-		else
-			break;
-		end;
-		v30 = v30 + 1;	
-	end;
-end;
-local u1 = {};
-local u2 = 0;
-local u3 = 0;
-local u4 = 0;
-local u5 = 0;
-local u6 = 0;
-local u7 = 0;
-local u8 = 0;
-local u9 = 0;
-local u10 = 0;
-local u11 = require(l__Parent__3.Modules.HitGraph);
-local u12 = {};
-local u13 = 100;
-local u14 = nil;
-local function v33()
-	local v34 = l__Parent__3.LowerContainer.Stats.Label;
-	l__Parent__3.LowerContainer.Bar.Visible = l__LocalPlayer__2.Input.HealthBar.Value;
-	local u15 = 0;
-	table.foreach(u1, function(p1, p2)
-		u15 = u15 + p2;
-	end);
-	local v35 = 100;
-	if u15 == 0 and #u1 == 0 then
-		local v36 = "Accuracy: 100%";
+local function updateStats()
+	local info = ui.LowerContainer.Stats.Label
+
+	ui.LowerContainer.Bar.Visible = player.Input.HealthBar.Value
+	--if not player.Input.InfoBar.Value then return end
+
+	local d = 0
+	local data = ""
+
+	table.foreach(accuracy, function(_, v)
+		d += v
+	end)
+
+	local newAcc = 100
+
+	if d == 0 and #accuracy == 0 then
+		data = "Accuracy: 100%"
 	else
-		u2 = string.sub(tostring(u15 / #u1), 1, 5);
-		v36 = "Accuracy: " .. u2 .. "%";
-		v35 = u2;
-	end;
-	local v37 = v36 .. " | Combo: " .. u3 .. " | Misses: " .. u4;
-	v34.Text = v37;
-	if l__LocalPlayer__2.Input.VerticalBar.Value then
-		v34 = l__Parent__3.SideContainer.Accuracy;
-		v34.Text = string.gsub(v37, " | ", "\n");
-	end;
-	if u5 < u3 then
-		u5 = u3;
-	end;
-	l__Parent__3.SideContainer.Data.Text = "Marvelous: " .. u6 .. "\nSick: " .. u7 .. "\nGood: " .. u8 .. "\nOk: " .. u9 .. "\nBad: " .. u10;
-	local l__Extra__38 = l__Parent__3.SideContainer.Extra;
-	if u7 == 0 then
-		local v39 = 1;
-	else
-		v39 = u7;
-	end;
-	if u7 == 0 then
-		local v40 = ":inf";
-	else
-		v40 = ":1";
-	end;
-	if u8 == 0 then
-		local v41 = 1;
-	else
-		v41 = u8;
-	end;
-	if u8 == 0 then
-		local v42 = ":inf";
-	else
-		v42 = ":1";
-	end;
-	l__Extra__38.Text = "MA: " .. math.floor(u6 / v39 * 100 + 0.5) / 100 .. v40 .. "\nPA: " .. math.floor(u7 / v41 * 100 + 0.5) / 100 .. v42;
-	l__Extra__38.Text = l__Extra__38.Text .. "\nMean: " .. u11.CalculateMean(u12, l__LocalPlayer__2.Input.Offset.Value) .. "ms";
-	l__Events__5.UpdateData:FireServer({
-		accuracy = v35, 
-		combo = u3, 
-		misses = u4, 
+		actualAccuracy = string.sub(tostring((d / #accuracy)), 1, 5)
+		data = "Accuracy: " .. actualAccuracy .. "%"
+		newAcc = actualAccuracy
+	end
+
+	data = data .. " | Combo: " ..combo .. " | Misses: " .. misses
+
+	info.Text = data
+
+	if player.Input.VerticalBar.Value then
+		info = ui.SideContainer.Accuracy
+		info.Text = string.gsub(data, " | ", "\n")
+	end
+
+	if combo > highcombo then highcombo = combo end
+
+	-- judgement counter !!!
+	local judgement = ui.SideContainer.Data
+	judgement.Text = "Marvelous: " .. marv .. "\nSick: " .. sick .. "\nGood: " .. good .. "\nOk: " .. ok .. "\nBad: " .. bad
+
+	-- extra data !!!
+	local extra = ui.SideContainer.Extra
+	extra.Text = "MA: "..round(marv / (sick == 0 and 1 or sick), 2) .. (sick == 0 and ":inf" or ":1").."\nPA: "..round(sick / (good == 0 and 1 or good), 2) .. (good == 0 and ":inf" or ":1")
+	extra.Text = extra.Text .. "\nMean: "..hitGraphModule.CalculateMean(hitGraph,player.Input.Offset.Value) .. "ms"
+
+	local npsDisplay = ui.SideContainer.NPS
+	npsDisplay.Text = "NPS: " .. nps .. "\nMax NPS: " .. peakNps
+
+	events.UpdateData:FireServer({
+		accuracy = newAcc,
+		combo = combo,
+		misses = misses,
 		bot = false
-	});
-	u13 = v35;
-	if u14 ~= nil and u14.overrideStats then
-		if u7 + u8 + u9 + u10 + u4 == 0 then
-			local v43 = "MFC";
-		elseif u8 + u9 + u10 + u4 == 0 then
-			v43 = "PFC";
-		elseif u9 + u10 + u4 == 0 then
-			v43 = "GFC";
-		elseif u4 == 0 then
-			v43 = "FC";
-		elseif u4 < 10 then
-			v43 = "SDBC";
+	})
+	
+	_acc_ = newAcc
+
+	if (healthbarConfig ~= nil and healthbarConfig.overrideStats) then		
+		local shadowVal
+		local val
+		
+		local p1, p2 = stage.Config.P1Points.Value, stage.Config.P2Points.Value
+		local score = stage.Config.Player1.Value == player and p1 or p2
+		
+		local rating = "?"
+		if sick+good+ok+bad+misses == 0 then
+			rating = "MFC"
+		elseif good+ok+bad+misses == 0 then
+			rating = "PFC"
+		elseif ok+bad+misses == 0 then
+			rating = "GFC"
+		elseif misses == 0 then
+			rating = "FC"
+		elseif misses < 10 then
+			rating = "SDCB"
 		else
-			v43 = "Clear";
-		end;
-		if u14.overrideStats.Value then
-			local v44 = string.gsub(string.gsub(string.gsub(string.gsub(string.gsub(u14.overrideStats.Value, "{misses}", u4), "{combo}", u3), "{score}", l__Value__6.Config.Player1.Value == l__LocalPlayer__2 and l__Value__6.Config.P1Points.Value or l__Value__6.Config.P2Points.Value), "{rating}", v43), "{accuracy}", v35 .. "%%");
+			rating = "Clear"
+		end
+
+		if healthbarConfig.overrideStats.Value then
+			val = healthbarConfig.overrideStats.Value
+			val = string.gsub(val, "{misses}", misses)
+			val = string.gsub(val, "{combo}", combo)
+			val = string.gsub(val, "{score}", score)
+			val = string.gsub(val, "{rating}", rating)
+			val = string.gsub(val, "{accuracy}", newAcc .. "%%")
 		else
-			v44 = v34.Text;
-		end;
-		if u14.overrideStats.ShadowValue then
-			local v45 = string.gsub(string.gsub(string.gsub(u14.overrideStats.ShadowValue, "{misses}", u4), "{combo}", u3), "{accuracy}", v35 .. "%%");
+			val = info.Text
+		end
+
+		if healthbarConfig.overrideStats.ShadowValue then
+			shadowVal = healthbarConfig.overrideStats.ShadowValue
+			shadowVal = string.gsub(shadowVal, "{misses}", misses)
+			shadowVal = string.gsub(shadowVal, "{combo}", combo)
+			shadowVal = string.gsub(shadowVal, "{accuracy}", newAcc .. "%%")
 		else
-			v45 = v34.Text;
-		end;
-		if u14.overrideStats.Separator then
-			v44 = string.gsub(v44, "|", u14.overrideStats.Separator);
-			v45 = v44;
-		end;
-		if u14.overrideStats.ChildrenToUpdate then
-			l__Parent__3.SideContainer.Accuracy.Visible = false;
-			local l__Label__46 = l__Parent__3.LowerContainer.Stats.Label;
-			local v47, v48, v49 = pairs(u14.overrideStats.ChildrenToUpdate);
-			while true do
-				local v50 = nil;
-				local v51, v52 = v47(v48, v49);
-				if not v51 then
-					break;
-				end;
-				v49 = v51;
-				v50 = l__Parent__3.LowerContainer.Stats[v52];
-				if v52:lower():match("shadow") then
-					v50.Text = v45;
+			shadowVal = info.Text
+		end
+		
+		if healthbarConfig.overrideStats.Separator then
+			val = string.gsub(val, "|", healthbarConfig.overrideStats.Separator)
+			shadowVal = val
+		end
+
+		if (healthbarConfig.overrideStats.ChildrenToUpdate) then
+			ui.SideContainer.Accuracy.Visible = false
+			info = ui.LowerContainer.Stats.Label
+			for i,v in pairs(healthbarConfig.overrideStats.ChildrenToUpdate) do
+				info = ui.LowerContainer.Stats[v]
+				if v:lower():match("shadow") then
+					info.Text = shadowVal
 				else
-					v50.Text = v44;
-				end;			
-			end;
-		elseif l__LocalPlayer__2.Input.VerticalBar.Value then
-			if u14.overrideStats.Separator then
-				v34.Text = string.gsub(v44, " " .. u14.overrideStats.Separator .. " ", "\n");
+					info.Text = val
+				end
+			end
+		else
+			if player.Input.VerticalBar.Value then 
+				if healthbarConfig.overrideStats.Separator then
+					info.Text = string.gsub(val, " " ..healthbarConfig.overrideStats.Separator.." ", "\n")
+				else
+					info.Text = string.gsub(val, " | ", "\n")
+				end
 			else
-				v34.Text = string.gsub(v44, " | ", "\n");
-			end;
-		else
-			v34.Text = v44;
-		end;
-	end;
-end;
-v33();
-local u16 = 0;
-local u17 = 1;
-l__Events__5.Start.OnClientEvent:Connect(function(p3, p4, p5)
-	u16 = p3;
-	local v53 = 1 / p4;
-	local v54 = p5:FindFirstChild("Modchart") and (p5.Modchart:IsA("ModuleScript") and require(p5.Modchart));
-	if v54 and v54.PreStart then
-		v54.PreStart(l__Parent__3, v53);
-	end;
-	local v55 = {};
-	if p5:FindFirstChild("Countdown") and game.ReplicatedStorage.Countdowns:FindFirstChild(p5.Countdown.Value) then
-		local v56 = require(game.ReplicatedStorage.Countdowns:FindFirstChild(p5.Countdown.Value).Config);
-		if v56.Audio ~= nil then
-			l__Value__6.MusicPart["3"].SoundId = v56.Audio["3"];
-			l__Value__6.MusicPart["2"].SoundId = v56.Audio["2"];
-			l__Value__6.MusicPart["1"].SoundId = v56.Audio["1"];
-			l__Value__6.MusicPart.Go.SoundId = v56.Audio.Go;
-		end;
-		v55 = v56.Images;
-	end;
-	if p5:FindFirstChild("ExtraCountdownTime") then
-		task.wait(p5.ExtraCountdownTime.Value);
-	end;
-	local l__Music__18 = l__Parent__3.GameMusic.Music;
-	local l__Vocals__19 = l__Parent__3.GameMusic.Vocals;
+				info.Text = val
+			end
+		end
+	end
+end
+
+updateStats()
+
+local function countdownPopup(waittime,number,config)
+	stage.MusicPart[number]:Play()
+	task.spawn(function()	
+		if config == nil or config[number] == nil then return end
+
+		local img = ui.Countdown.Countdown:Clone()
+		img.Name = number
+		img.Image = config[number]
+		img.Visible = true
+		img.Parent = ui.Countdown
+
+		TS:Create(img,TweenInfo.new(waittime,Enum.EasingStyle.Linear,Enum.EasingDirection.InOut),{ImageTransparency = 1}):Play()
+
+		task.wait(waittime*1.2)
+		img:Destroy()
+	end)
+end
+
+local songLength = 0
+
+local function tweeen(length,speed,songholder) 
+	songLength = length
+	
+	--print("CLIENT TIME: " .. songLength)
+	local waittime = 1 / speed
+	local modchartfile = (songholder:FindFirstChild("Modchart") and songholder.Modchart:IsA("ModuleScript")) and require(songholder.Modchart)
+	local music,vocals = ui.GameMusic.Music, ui.GameMusic.Vocals
+
+	if modchartfile and modchartfile.PreStart then
+		modchartfile.PreStart(ui,waittime)
+	end
+
+	local images = {}
+
+	if songholder:FindFirstChild("Countdown") and game.ReplicatedStorage.Countdowns:FindFirstChild(songholder.Countdown.Value) then
+		local conf = require(game.ReplicatedStorage.Countdowns:FindFirstChild(songholder.Countdown.Value).Config)
+
+		if conf.Audio ~= nil then
+			stage.MusicPart["3"].SoundId = conf.Audio["3"]
+			stage.MusicPart["2"].SoundId = conf.Audio["2"]
+			stage.MusicPart["1"].SoundId = conf.Audio["1"]
+			stage.MusicPart["Go"].SoundId = conf.Audio["Go"]
+		end
+
+		images = conf.Images
+	end
+
+	if songholder:FindFirstChild('ExtraCountdownTime') then task.wait(songholder.ExtraCountdownTime.Value) end
 	task.spawn(function()
-		if p5:FindFirstChild("NoCountdown") then
-			task.wait(v53 * 3);
-			l__Value__6.MusicPart["3"].Volume = 0;
-			l__Value__6.MusicPart.Go.Volume = 0;
-			l__Value__6.MusicPart["3"]:Play();
-			l__Value__6.MusicPart.Go:Play();
-			task.wait(v53);
-			l__Music__18.Playing = true;
-			l__Vocals__19.Playing = true;
-			return;
-		end;
-		l__Value__6.MusicPart["3"]:Play();
-		local u20 = v55;
-		local u21 = "3";
-		local u22 = v53;
-		task.spawn(function()
-			if u20 == nil or u20[u21] == nil then
-				return;
-			end;
-			local v57 = l__Parent__3.Countdown.Countdown:Clone();
-			v57.Name = u21;
-			v57.Image = u20[u21];
-			v57.Visible = true;
-			v57.Parent = l__Parent__3.Countdown;
-			l__TweenService__17:Create(v57, TweenInfo.new(u22, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
-				ImageTransparency = 1
-			}):Play();
-			task.wait(u22 * 1.2);
-			v57:Destroy();
-		end);
-		u22 = task.wait;
-		u20 = v53;
-		u22(u20);
-		u22 = v53;
-		u20 = v55;
-		u21 = l__Value__6;
-		u21.MusicPart["2"]:Play();
-		u21 = "2";
-		task.spawn(function()
-			if u20 == nil or u20[u21] == nil then
-				return;
-			end;
-			local v58 = l__Parent__3.Countdown.Countdown:Clone();
-			v58.Name = u21;
-			v58.Image = u20[u21];
-			v58.Visible = true;
-			v58.Parent = l__Parent__3.Countdown;
-			l__TweenService__17:Create(v58, TweenInfo.new(u22, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
-				ImageTransparency = 1
-			}):Play();
-			task.wait(u22 * 1.2);
-			v58:Destroy();
-		end);
-		u22 = task.wait;
-		u20 = v53;
-		u22(u20);
-		u22 = v53;
-		u20 = v55;
-		u21 = l__Value__6;
-		u21.MusicPart["1"]:Play();
-		u21 = "1";
-		task.spawn(function()
-			if u20 == nil or u20[u21] == nil then
-				return;
-			end;
-			local v59 = l__Parent__3.Countdown.Countdown:Clone();
-			v59.Name = u21;
-			v59.Image = u20[u21];
-			v59.Visible = true;
-			v59.Parent = l__Parent__3.Countdown;
-			l__TweenService__17:Create(v59, TweenInfo.new(u22, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
-				ImageTransparency = 1
-			}):Play();
-			task.wait(u22 * 1.2);
-			v59:Destroy();
-		end);
-		u22 = task.wait;
-		u20 = v53;
-		u22(u20);
-		u22 = v53;
-		u20 = v55;
-		u21 = l__Value__6;
-		u21.MusicPart.Go:Play();
-		u21 = "Go";
-		task.spawn(function()
-			if u20 == nil or u20[u21] == nil then
-				return;
-			end;
-			local v60 = l__Parent__3.Countdown.Countdown:Clone();
-			v60.Name = u21;
-			v60.Image = u20[u21];
-			v60.Visible = true;
-			v60.Parent = l__Parent__3.Countdown;
-			l__TweenService__17:Create(v60, TweenInfo.new(u22, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {
-				ImageTransparency = 1
-			}):Play();
-			task.wait(u22 * 1.2);
-			v60:Destroy();
-		end);
-		u22 = task.wait;
-		u20 = v53;
-		u22(u20);
-		u22 = l__Music__18;
-		u20 = true;
-		u22.Playing = u20;
-		u22 = l__Vocals__19;
-		u20 = true;
-		u22.Playing = u20;
-	end);
-	for v61, v62 in pairs(l__Value__6.MusicPart:GetChildren()) do
-		if v62:IsA("Sound") and v62.Name ~= "SERVERmusic" and v62.Name ~= "SERVERvocals" then
-			v62.Volume = 0.5;
-		end;
-	end;
-	l__Config__4.TimePast.Value = -4 / p4;
-	l__TweenService__17:Create(l__Config__4.TimePast, TweenInfo.new(p3 + 4 / p4, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0), {
-		Value = p3
-	}):Play();
-	if p5:FindFirstChild("Instrumental") then
-		l__Music__18.Volume = p5.Instrumental.Volume.Value;
-	end;
-	if p5:FindFirstChild("Sound") then
-		l__Vocals__19.Volume = p5.Sound.Volume.Value;
-	end;
-	l__Music__18.PitchEffect.Enabled = false;
-	l__Vocals__19.PitchEffect.Enabled = false;
-	if p5:FindFirstChild("Instrumental") then
-		l__Music__18.SoundId = p5.Instrumental.Value;
-		l__Music__18.PlaybackSpeed = p5.Instrumental.PlaybackSpeed.Value;
-	end;
-	if p5:FindFirstChild("Sound") then
-		l__Vocals__19.SoundId = p5.Sound.Value;
-		l__Vocals__19.PlaybackSpeed = p5.Sound.PlaybackSpeed.Value;
-	end;
-	if u17 ~= 1 then
-		l__Music__18.PlaybackSpeed = l__Music__18.PlaybackSpeed * u17;
-		l__Vocals__19.PlaybackSpeed = l__Vocals__19.PlaybackSpeed * u17;
-		if l__LocalPlayer__2.Input.DisablePitch.Value then
-			l__Music__18.PitchEffect.Enabled = true;
-			l__Vocals__19.PitchEffect.Enabled = true;
-			l__Music__18.PitchEffect.Octave = 1 / u17;
-			l__Vocals__19.PitchEffect.Octave = 1 / u17;
-		end;
-	end;
-	l__Music__18.TimePosition = 0;
-	l__Vocals__19.TimePosition = 0;
-end);
-local v63 = game.ReplicatedStorage.Skins:FindFirstChild(l__LocalPlayer__2.Input.Skin.Value) or game.ReplicatedStorage.Skins.Default;
-local v64 = game.ReplicatedStorage.Skins:FindFirstChild(l__LocalPlayer__2.Input.BotSkin.Value) or game.ReplicatedStorage.Skins.Default;
-local v65 = Instance.new("BlurEffect");
-v65.Parent = game.Lighting;
-v65.Size = 0;
-for v66, v67 in pairs(v28.Modifiers:GetDescendants()) do
-	if v67:IsA("ImageButton") then
-		v67.ImageColor3 = Color3.fromRGB(136, 136, 136);
-		local u23 = false;
-		v67.MouseButton1Click:Connect(function()
-			u23 = not u23;
-			l__TweenService__17:Create(v67, TweenInfo.new(0.4), {
-				ImageColor3 = u23 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(136, 136, 136)
-			}):Play();
-			if v67:FindFirstChild("misc") then
-				l__TweenService__17:Create(v67.misc, TweenInfo.new(0.4), {
-					ImageColor3 = u23 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(136, 136, 136)
-				}):Play();
-			end;
-			l__Events__5.Modifiers:FireServer(v67.Name);
-		end);
-		v67.MouseEnter:Connect(function()
-			v67.ZIndex = 2;
-			local v68 = script.ModifierLabel:Clone();
-			v68.Parent = v67;
-			v68.Text = "  " .. string.gsub(v67.Info.Value, "|", "\n") .. "  ";
-			v68.Size = UDim2.new();
-			l__TweenService__17:Create(v68, TweenInfo.new(0.125), {
-				Size = v68.Size
-			}):Play();
-		end);
-		v67.MouseLeave:Connect(function()
-			while v67:FindFirstChild("ModifierLabel") do
-				v67.ZIndex = 1;
-				local l__ModifierLabel__69 = v67:FindFirstChild("ModifierLabel");
-				if l__ModifierLabel__69 then
-					l__TweenService__17:Create(l__ModifierLabel__69, TweenInfo.new(0.125, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-						Size = UDim2.new()
-					}):Play();
-					task.wait(0.125);
-					l__ModifierLabel__69:Destroy();
-				end;			
-			end;
-		end);
-	end;
-end;
-function nowPlaying(p6, p7)
-	local v70 = game.ReplicatedStorage.Misc.NowPlaying:Clone();
-	v70.Parent = p6;
-	v70.Position = v70.Position - UDim2.fromScale(0.2, 0);
-	v70.Color.BackgroundColor3 = Color3.new(1, 0.75, 0);
-	v70.BGColor.BackgroundColor3 = v14.MixColors(Color3.new(0.1, 0.1, 0.1), Color3.new(1, 0.75, 0));
-	v70.SongName.TextColor3 = Color3.new(1, 0.75, 0);
-	v70.SongName.Text = p7;
-	v70.ZIndex = 99999;
-	game.TweenService:Create(v70, TweenInfo.new(1), {
-		Position = v70.Position + UDim2.fromScale(0.2, 0)
-	}):Play();
-	task.wait(5.5);
-	local v71 = game.TweenService:Create(v70, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Position = v70.Position - UDim2.fromScale(0.2, 0)
-	});
-	v71:Play();
-	v71.Completed:Connect(function()
-		v70:Destroy();
-	end);
-end;
-local l__ModifierMultiplier__72 = l__Parent__3:WaitForChild("ModifierMultiplier");
-v28.Modifiers.Multiplier.Text = "1x";
-v28.Modifiers.Multiplier.TextColor3 = Color3.new(1, 1, 1);
-l__ModifierMultiplier__72.Changed:Connect(function()
-	if l__ModifierMultiplier__72.Value > 1 then
-		local v73 = Color3.fromRGB(255, 255, 0);
-	elseif l__ModifierMultiplier__72.Value < 1 then
-		v73 = Color3.fromRGB(255, 64, 30);
-	else
-		v73 = Color3.fromRGB(255, 255, 255);
-	end;
-	v14.AnimateMultiplier(l__Parent__3, v28.Modifiers.Multiplier, v73);
-	v28.Modifiers.Multiplier.Text = l__ModifierMultiplier__72.Value .. "x";
-end);
-local v74 = l__Parent__3.SelectionMusic:GetChildren();
-local v75 = v74[math.random(1, #v74)];
-v75.Volume = 0;
-v75:Play();
-l__TweenService__17:Create(v75, TweenInfo.new(4, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-	Volume = v75.Volume
-}):Play();
-l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	FieldOfView = 35
-}):Play();
-l__TweenService__17:Create(v65, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	Size = 25
-}):Play();
-v28.Visible = true;
-if l__LocalPlayer__2.Input.StreamerMode.Value == true then
-	if not string.find(v75.Name, "FNF") then
-		v75.PlaybackSpeed = v75.PlaybackSpeed - 0.35;
-		local v76 = Instance.new("EqualizerSoundEffect");
-		v76.LowGain = 20;
-		v76.Parent = v75;
-	end;
-else
-	v75.PlaybackSpeed = v75.PlaybackSpeed;
-	if v75:FindFirstChildOfClass("EqualizerSoundEffect") then
-		v75:FindFirstChildOfClass("EqualizerSoundEffect"):Destroy();
-	end;
-end;
-task.delay(2.5, function()
-	nowPlaying(l__Parent__3, v75.Name);
-end);
-v28.TimeLeft.Text = "Time Left: 15";
-local u24 = nil;
-u24 = l__Value__6.Config.SelectTimeLeft.Changed:Connect(function()
-	if not l__Parent__3.Parent then
-		u24:Disconnect();
-		return;
-	end;
-	v28.TimeLeft.Text = "Time Left: " .. l__Value__6.Config.SelectTimeLeft.Value;
-end);
-l__Value__6.Events.LoadPlayer.OnClientInvoke = function(p8, p9)
-	l__Parent__3.Loading.Visible = true;
-	l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		FieldOfView = 68
-	}):Play();
-	game.ContentProvider:PreloadAsync({ p8, p9 });
-	local l__Music__77 = l__Parent__3.GameMusic.Music;
-	local l__Vocals__78 = l__Parent__3.GameMusic.Vocals;
-	if p8.SoundId ~= "" then
-		l__Music__77.SoundId = p8.SoundId;
-		while true do
-			task.wait();
-			if l__Music__77.TimeLength > 0 then
-				break;
-			end;		
-		end;
-	end;
-	if p9.SoundId ~= "" then
-		l__Vocals__78.SoundId = p9.SoundId;
-		while true do
-			task.wait();
-			if l__Vocals__78.TimeLength > 0 then
-				break;
-			end;		
-		end;
-	end;
-	task.wait(0.5);
-	l__Parent__3.Loading.Visible = false;
-	return true;
-end;
-workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable;
-workspace.CurrentCamera.CFrame = l__Value__6.CameraPoints.C.CFrame;
-game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false);
-game.StarterGui:SetCore("ResetButtonCallback", false);
-local v79 = game.ReplicatedStorage.Events.PlayerSongVote.Event:Connect(function(p10, p11, p12, p13)
-	if not (not p10) and not (not p11) and not (not p12) and not (not p13) then
-		l__Value__6.Events.PlayerSongVote:FireServer(p10, p11, p12, p13);
-		if l__Value__6.Config.SinglePlayerEnabled.Value then
-			u17 = p13;
+		if songholder:FindFirstChild("NoCountdown") then
+			task.wait(waittime*3)
+			stage.MusicPart["3"].Volume = 0
+			stage.MusicPart["Go"].Volume = 0
+			stage.MusicPart["3"]:Play()
+			stage.MusicPart["Go"]:Play()
+			task.wait(waittime)
+			music.Playing = true
+			vocals.Playing = true
 		else
-			u17 = 1;
-		end;
-		l__Config__4.PlaybackSpeed.Value = u17;
-		return;
-	end;
-end);
-for v80, v81 in pairs(l__LocalPlayer__2.PlayerGui.GameUI:GetChildren()) do
-	if not string.match(v81.Name, "SongSelect") then
-		v81.Visible = false;
-	end;
-end;
-v28:SetAttribute("2v2", nil);
-for v82, v83 in pairs(v28.SongScroller:GetChildren()) do
-	if v83:GetAttribute("2V2") then
-		v83.Visible = false;
-	end;
-end;
-for v84, v85 in pairs(v28.BasicallyNil:GetChildren()) do
-	if v85:GetAttribute("2V2") then
-		v85.Visible = false;
-	end;
-end;
-v28.Background.Fill.OpponentSelect.Visible = true;
-v28.Background.Fill["Player 1Select"].Visible = false;
-v28.Background.Fill["Player 2Select"].Visible = false;
-v28.Background.Fill["Player 3Select"].Visible = false;
-v28.Background.Fill["Player 4Select"].Visible = false;
-while true do
-	v14.wait();
-	if l__Value__6.Config.Song.Value then
-		break;
-	end;
-end;
-local v86 = l__TweenService__17:Create(v65, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	Size = 0
-});
-v86:Play();
-v86.Completed:Connect(function()
-	v65:Destroy();
-end);
-local v87 = l__TweenService__17:Create(v75, TweenInfo.new(2, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-	Volume = 0
-});
-v87:Play();
-v87.Completed:Connect(function()
-	v75:Stop();
-end);
-local v88 = l__Value__6.Config.Song.Value:IsA("StringValue") and l__Value__6.Config.Song.Value.Value or require(l__Value__6.Config.Song.Value);
-local v89 = l__Value__6.Config.Song.Value:FindFirstAncestorOfClass("StringValue") or l__Value__6.Config.Song.Value;
-if v89.Parent.Parent.Parent.Name == "Songs" and not v89:FindFirstChild("Sound") then
-	v89 = v89.Parent;
-end;
-local v90, v91, v92, v93, v94 = v14.SpecialSongCheck(v89);
-v28.Visible = false;
-v79:Disconnect();
-workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable;
-workspace.CurrentCamera.CFrame = l__Value__6.CameraPoints.C.CFrame;
+			countdownPopup(waittime,"3",images)
+			task.wait(waittime)
+
+			countdownPopup(waittime,"2",images)
+			task.wait(waittime)
+
+			countdownPopup(waittime,"1",images)
+			task.wait(waittime)
+
+			countdownPopup(waittime,"Go",images)
+			task.wait(waittime)
+
+			music.Playing = true
+			vocals.Playing = true
+		end
+	end)
+
+	for _, thing in pairs(stage.MusicPart:GetChildren()) do
+		if thing:IsA("Sound") and thing.Name ~= "SERVERmusic" and thing.Name ~= "SERVERvocals" then
+			thing.Volume = 0.5
+		end
+	end
+
+	config.TimePast.Value = -4 / speed
+	local lengthtween = TS:Create(config.TimePast,TweenInfo.new((length+(4/speed)), Enum.EasingStyle.Linear,Enum.EasingDirection.In,0,false,0),
+		{Value=length})
+	lengthtween:Play()
+	
+	--[[lengthtween.Completed:Connect(function() 
+		print("CLIENT FINISHED: " .. config.TimePast.Value .. ", " .. tick())
+	end)]]
+
+	if songholder:FindFirstChild("Instrumental") then music.Volume = songholder.Instrumental.Volume.Value; end
+	if songholder:FindFirstChild("Sound") then vocals.Volume = songholder.Sound.Volume.Value; end
+
+	music.PitchEffect.Enabled = false
+	vocals.PitchEffect.Enabled = false
+
+	if songholder:FindFirstChild("Instrumental") then
+		music.SoundId = songholder.Instrumental.Value
+		music.PlaybackSpeed = songholder.Instrumental.PlaybackSpeed.Value
+	end
+	if songholder:FindFirstChild("Sound") then
+		vocals.SoundId = songholder.Sound.Value
+		vocals.PlaybackSpeed = songholder.Sound.PlaybackSpeed.Value
+	end
+
+	if playbackRate ~= 1 then
+		music.PlaybackSpeed = music.PlaybackSpeed * playbackRate
+		vocals.PlaybackSpeed = vocals.PlaybackSpeed * playbackRate
+
+		if (player.Input.DisablePitch.Value) then
+			music.PitchEffect.Enabled = true
+			vocals.PitchEffect.Enabled = true
+
+			music.PitchEffect.Octave = 1/playbackRate
+			vocals.PitchEffect.Octave = 1/playbackRate
+		end
+	end
+
+	music.TimePosition = 0
+	vocals.TimePosition = 0
+end
+
+events.Start.OnClientEvent:Connect(tweeen)
+
+local skinType = game.ReplicatedStorage.Skins:FindFirstChild(player.Input.Skin.Value) or game.ReplicatedStorage.Skins.Default
+local botSkinType = game.ReplicatedStorage.Skins:FindFirstChild(player.Input.BotSkin.Value) or game.ReplicatedStorage.Skins.Default
+
+local skin = skinType.Notes.Value
+local botSkin = botSkinType.Notes.Value
+
+local blur = Instance.new("BlurEffect")
+blur.Parent = game.Lighting
+blur.Size = 0
+
+--TS:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = 0}):Play()
+
+--// modifier stuff
+
+for _, modifierButton in pairs(songSelect.Modifiers:GetDescendants()) do
+	if modifierButton:IsA("ImageButton") then
+		modifierButton.ImageColor3 = Color3.fromRGB(136, 136, 136);local enabled=false
+		modifierButton.MouseButton1Click:Connect(function()
+			enabled=not enabled
+			TS:Create(modifierButton, TweenInfo.new(0.4), {ImageColor3 = enabled and Color3.fromRGB(255,255,255) or Color3.fromRGB(136, 136, 136)}):Play()
+			if modifierButton:FindFirstChild("misc") then
+				TS:Create(modifierButton.misc, TweenInfo.new(0.4), {ImageColor3 = enabled and Color3.fromRGB(255,255,255) or Color3.fromRGB(136, 136, 136)}):Play()
+			end
+			events.Modifiers:FireServer(modifierButton.Name)
+		end)
+		modifierButton.MouseEnter:Connect(function()
+			modifierButton.ZIndex = 2
+			local modifierLabel = script.ModifierLabel:Clone()
+			modifierLabel.Parent = modifierButton
+			modifierLabel.Text = "  "..string.gsub(modifierButton.Info.Value, "|", "\n").."  "
+			local ogSize = modifierLabel.Size
+			modifierLabel.Size = UDim2.new()
+			TS:Create(modifierLabel, TweenInfo.new(0.125), {Size = ogSize}):Play()
+		end)
+		modifierButton.MouseLeave:Connect(function()
+			while modifierButton:FindFirstChild("ModifierLabel") do
+				modifierButton.ZIndex = 1
+				local modifierLabel = modifierButton:FindFirstChild("ModifierLabel")
+				if modifierLabel then
+					TS:Create(modifierLabel, TweenInfo.new(0.125, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new()}):Play()
+					task.wait(0.125)
+					modifierLabel:Destroy()
+				end
+			end
+		end)
+	end
+end
+
+function nowPlaying(ui,name)
+	local nowPlaying = game.ReplicatedStorage.Misc.NowPlaying:Clone()
+	
+	nowPlaying.Parent = ui
+	nowPlaying.Position -= UDim2.fromScale(0.2,0)
+	nowPlaying.Color.BackgroundColor3 = Color3.new(1,0.75,0)
+	nowPlaying.BGColor.BackgroundColor3 = Util.MixColors(Color3.new(0.1,0.1,0.1),Color3.new(1,0.75,0))
+	nowPlaying.SongName.TextColor3 = Color3.new(1,0.75,0)
+	nowPlaying.SongName.Text = name
+	nowPlaying.ZIndex = 99999 -- just because highest lol...
+
+	game.TweenService:Create(nowPlaying, TweenInfo.new(1), {Position = nowPlaying.Position + UDim2.fromScale(0.2,0)}):Play()
+	task.wait(5.5)
+
+	local tween = game.TweenService:Create(nowPlaying, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = nowPlaying.Position - UDim2.fromScale(0.2,0)});
+	tween:Play()
+	tween.Completed:Connect(function()
+		nowPlaying:Destroy()
+	end)
+end
+
+local multiplier = ui:WaitForChild("ModifierMultiplier")
+songSelect.Modifiers.Multiplier.Text = "1x"; songSelect.Modifiers.Multiplier.TextColor3 = Color3.new(1,1,1)
+
+multiplier.Changed:Connect(function()
+	local color;if multiplier.Value > 1 then color = Color3.fromRGB(255, 255, 0);elseif multiplier.Value < 1 then color = Color3.fromRGB(255, 64, 30);else color = Color3.fromRGB(255, 255, 255) end
+	Util.AnimateMultiplier(ui,songSelect.Modifiers.Multiplier,color)
+	songSelect.Modifiers.Multiplier.Text = multiplier.Value.."x"
+end)
+
+local lobbyMusic = ui.SelectionMusic:GetChildren()
+local songselectionsong = lobbyMusic[math.random(1,#lobbyMusic)]
+local songselectionsongVolume = songselectionsong.Volume
+local songselectionsongSpeed = songselectionsong.PlaybackSpeed -- some songs have a different speed
+
+songselectionsong.Volume = 0
+songselectionsong:Play()
+
+TS:Create(songselectionsong,TweenInfo.new(4,Enum.EasingStyle.Quint,Enum.EasingDirection.In),{Volume = songselectionsongVolume}):Play()
+TS:Create(workspace.CurrentCamera, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {FieldOfView = 35}):Play()
+TS:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = 25}):Play()
+songSelect.Visible = true
+
+if player.Input.StreamerMode.Value == true then
+	if not string.find(songselectionsong.Name,"FNF") then
+		songselectionsong.PlaybackSpeed -= 0.35
+		local a = Instance.new("EqualizerSoundEffect")
+		a.LowGain = 20
+		a.Parent = songselectionsong
+	end
+else
+	songselectionsong.PlaybackSpeed = songselectionsongSpeed
+	if songselectionsong:FindFirstChildOfClass("EqualizerSoundEffect") then
+		songselectionsong:FindFirstChildOfClass("EqualizerSoundEffect"):Destroy()
+	end
+end
+
+task.delay(2.5,function()
+	nowPlaying(ui,songselectionsong.Name)
+end)
+
+songSelect.TimeLeft.Text = "Time Left: 15"
+local c c = stage.Config.SelectTimeLeft.Changed:Connect(function()
+	if not ui.Parent then c:Disconnect() return end
+	songSelect.TimeLeft.Text = "Time Left: " .. stage.Config.SelectTimeLeft.Value
+end)
+
+--// load songs on client
+
+stage.Events.LoadPlayer.OnClientInvoke = function(serverMusic, serverVocals)
+	--// basic preloading
+	ui.Loading.Visible = true
+	TS:Create(workspace.CurrentCamera, TweenInfo.new(.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {FieldOfView = 68}):Play()
+	game.ContentProvider:PreloadAsync({serverMusic, serverVocals})
+
+	--// reassurance check
+	local music,vocals = ui.GameMusic.Music, ui.GameMusic.Vocals
+	if serverMusic.SoundId ~= "" then
+		music.SoundId = serverMusic.SoundId
+		repeat task.wait() until music.TimeLength > 0
+	end
+	if serverVocals.SoundId ~= "" then
+		vocals.SoundId = serverVocals.SoundId
+		repeat task.wait() until vocals.TimeLength > 0
+	end
+
+	--// finish preloading
+	task.wait(.5)
+	ui.Loading.Visible = false
+	return true
+end
+
+--// Disable Stuffs
+
+workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+workspace.CurrentCamera.CFrame = stage.CameraPoints.C.CFrame
+game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+game.StarterGui:SetCore("ResetButtonCallback", false)
+
+local voteConnection; voteConnection = game.ReplicatedStorage.Events.PlayerSongVote.Event:Connect(function(name, difficulty, folder, rate)
+	if (not name) or (not difficulty) or (not folder) or (not rate) then return end
+	stage.Events.PlayerSongVote:FireServer(name, difficulty, folder, rate)
+	if stage.Config.SinglePlayerEnabled.Value then
+		playbackRate = rate
+	else
+		playbackRate = 1
+	end
+	
+	config.PlaybackSpeed.Value = playbackRate
+end)
+
+for _, thing in pairs(player.PlayerGui.GameUI:GetChildren()) do
+	if not string.match(thing.Name, "SongSelect") then
+		thing.Visible = false
+	end
+end
+
+--// hide 2v2 song
+
+songSelect:SetAttribute("2v2", nil)
+
+for _, thing in pairs(songSelect.SongScroller:GetChildren()) do
+	if thing:GetAttribute("2V2") then thing.Visible = false end
+end
+
+for _, thing in pairs(songSelect.BasicallyNil:GetChildren()) do
+	if thing:GetAttribute("2V2") then thing.Visible = false end
+end
+
+songSelect.Background.Fill.OpponentSelect.Visible = true
+songSelect.Background.Fill["Player 1Select"].Visible = false
+songSelect.Background.Fill["Player 2Select"].Visible = false
+songSelect.Background.Fill["Player 3Select"].Visible = false
+songSelect.Background.Fill["Player 4Select"].Visible = false
+
+--// Stuffs
+
+repeat Util.wait() until stage.Config.Song.Value
+local tttt = TS:Create(blur, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = 0}); tttt:Play(); tttt.Completed:Connect(function() blur:Destroy() end)
+local tWeen = TS:Create(songselectionsong,TweenInfo.new(2,Enum.EasingStyle.Quint,Enum.EasingDirection.In),{Volume = 0}) tWeen:Play() tWeen.Completed:Connect(function() songselectionsong:Stop() end)
+local song = stage.Config.Song.Value:IsA("StringValue") and stage.Config.Song.Value.Value or require(stage.Config.Song.Value)
+local songholder = stage.Config.Song.Value:FindFirstAncestorOfClass("StringValue") or stage.Config.Song.Value
+if songholder.Parent.Parent.Parent.Name == "Songs" and not songholder:FindFirstChild("Sound") then songholder = songholder.Parent end
+local specialSong,sixKey,nineKey,sevenKey,fiveKey = Util.SpecialSongCheck(songholder)
+songSelect.Visible = false; voteConnection:Disconnect()
+workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+workspace.CurrentCamera.CFrame = stage.CameraPoints.C.CFrame
+
 task.spawn(function()
-	l__Value__6.MusicPart.Go.Played:Wait();
-	v14.NowPlaying(l__Parent__3, v89, l__LocalPlayer__2);
+	stage.MusicPart["Go"].Played:Wait();
+	Util.NowPlaying(ui, songholder, player)
 	task.wait(1);
 	game.StarterGui:SetCore("ResetButtonCallback", true);
-end);
-local v95 = require(l__Parent__3.Modules.Icons).SetIcons(l__Parent__3, v89);
-local u25 = v88;
-local v96, v97 = pcall(function()
-	u25 = game.HttpService:JSONDecode(u25).song;
-end);
-if v97 then
-	u25 = game.HttpService:JSONDecode(require(game.ReplicatedStorage.Songs["/v/-tan"].Sage.Hard)).song;
-end;
-u25.bpm = u25.bpm;
-local v98 = 60 / (u25.bpm and 120);
-local l__bpm__99 = u25.bpm;
-local l__Value__100 = v89.Credits.Value;
-if v89.Parent.Parent.Parent.Name == "Songs" then
-	local v101 = v89:IsA("ModuleScript") and v89.Parent.Name or v89.Name;
-else
-	v101 = v89.Name;
-end;
-local l__Name__102 = l__Value__6.Config.Song.Value.Name;
-local v103 = math.ceil((l__Value__6.MusicPart.SERVERvocals.TimeLength - l__Value__6.MusicPart.SERVERvocals.TimePosition) / l__Value__6.MusicPart.SERVERvocals.PlaybackSpeed);
-l__Parent__3.LowerContainer.Credit.Text = v101 .. " (" .. l__Name__102 .. ")" .. " (" .. u17 .. "x)" .. "\n" .. l__Value__100 .. "\n" .. string.format("%d:%02d", math.floor(v103 / 60), v103 % 60);
-if v89:FindFirstChild("MobileButtons") then
-	l__Parent__3.MobileButtons:Destroy();
-	v89.MobileButtons:Clone().Parent = l__Parent__3;
-end;
-if v89:FindFirstChild("Countdown") and game.ReplicatedStorage.Countdowns:FindFirstChild(v89.Countdown.Value) then
-	local v104 = require(game.ReplicatedStorage.Countdowns:FindFirstChild(v89.Countdown.Value).Config);
-	local v105 = {};
-	if v104.Images ~= nil then
-		for v106, v107 in pairs(v104.Images) do
-			table.insert(v105, v107);
-		end;
-	end;
-	if v104.Audio ~= nil then
-		for v108, v109 in pairs(v104.Audio) do
-			table.insert(v105, v109);
-		end;
-	end;
-	game.ContentProvider:PreloadAsync(v105);
-end;
-local v110 = v14.ModchartCheck(l__Parent__3, v89, u25);
-local v111 = v13.Start(l__Parent__3, v89:FindFirstChild("Modchart"), l__bpm__99, v110, u25, u17);
-local v112 = require(l__Parent__3.Modules.Functions);
-v112.keyCheck(v89, v92, v91, v93, v94);
-local v113 = nil;
-if v89:FindFirstChild("notetypeconvert") then
-	v113 = require(v89.notetypeconvert);
-end;
-v112.stuffCheck(v89);
-local v114 = v89:FindFirstChild("notetypeconvert") and v113.notetypeconvert or v112.notetypeconvert;
-if v113 and v113.newKeys then
-	v113.newKeys(l__Parent__3);
-	v90 = true;
-end;
-local v115 = nil;
-if not l__Value__6.Config.SinglePlayerEnabled.Value then
-	if l__Value__6.Config.Player1.Value == l__LocalPlayer__2 then
-		v115 = l__Value__6.Config.Player2.Value;
-	else
-		v115 = l__Value__6.Config.Player1.Value;
-	end;
-end;
-if v115 then
-	local v116 = game.ReplicatedStorage.Skins:FindFirstChild(v115.Input.Skin.Value) or game.ReplicatedStorage.Skins.Default;
-else
-	v116 = game.ReplicatedStorage.Skins.Default;
-end;
-l__Game__7.L.Arrows.IncomingNotes.DescendantAdded:Connect(function(p14)
-	if not (l__Game__7.Rotation >= 90) then
-		return;
-	end;
-	if v89:FindFirstChild("NoSettings") then
-		return;
-	end;
-	if p14:IsA("Frame") and p14:FindFirstChild("Frame") then
-		p14.Rotation = 180;
-		p14.Frame.Rotation = 180;
-		p14.Frame.Arrow.Rotation = 180;
-	end;
-end);
-l__Game__7.R.Arrows.IncomingNotes.DescendantAdded:Connect(function(p15)
-	if not (l__Game__7.Rotation >= 90) then
-		return;
-	end;
-	if v89:FindFirstChild("NoSettings") then
-		return;
-	end;
-	if p15:IsA("Frame") and p15:FindFirstChild("Frame") then
-		p15.Rotation = 180;
-		p15.Frame.Rotation = 180;
-		p15.Frame.Arrow.Rotation = 180;
-	end;
-end);
-local u26 = v95;
-function ChangeUI(p16)
-	if p16 ~= nil then
-		local v117 = game.ReplicatedStorage.UIStyles[p16];
-		u14 = require(v117.Config);
-		l__Parent__3.LowerContainer.Bar:Destroy();
-		if l__LocalPlayer__2.Input.UseOldHealthbar.Value == true then
-			if p16 == "Default" then
-				local v118 = v117.BarOLD:Clone();
-				v118.Parent = l__Parent__3.LowerContainer;
-			else
-				v118 = v117.Bar:Clone();
-				v118.Parent = l__Parent__3.LowerContainer;
-			end;
-		else
-			v118 = v117.Bar:Clone();
-			v118.Parent = l__Parent__3.LowerContainer;
-		end;
-		if u14.HealthBarColors then
-			v118.Background.BackgroundColor3 = u14.HealthBarColors.Green or Color3.fromRGB(114, 255, 63);
-			v118.Background.Fill.BackgroundColor3 = u14.HealthBarColors.Red or Color3.fromRGB(255, 0, 0);
-		end;
-		if u14.ShowIcons then
-			v118.Player1.Sprite.Visible = u14.ShowIcons.Dad;
-			v118.Player2.Sprite.Visible = u14.ShowIcons.BF;
-		end;
-		if v117:FindFirstChild("Stats") then
-			l__Parent__3.LowerContainer.Stats:Destroy();
-			local v119 = v117.Stats:Clone();
-			v119.Parent = l__Parent__3.LowerContainer;
-			if u14.font then
-				v119.Label.Font = u14.font;
-				l__Parent__3.Stats.Label.Font = u14.font;
-				l__Parent__3.SideContainer.Data.Font = u14.font;
-				l__Parent__3.SideContainer.Extra.Font = u14.font;
-				l__Parent__3.SideContainer.Accuracy.Font = u14.font;
-				l__Parent__3.LowerContainer.Credit.Font = u14.font;
-			end;
-		end;
-		if u14.isPixel then
-			l__Parent__3.LowerContainer.PointsA.Font = Enum.Font.Arcade;
-			l__Parent__3.LowerContainer.PointsB.Font = Enum.Font.Arcade;
-		else
-			l__Parent__3.LowerContainer.PointsA.Font = Enum.Font.GothamBold;
-			l__Parent__3.LowerContainer.PointsB.Font = Enum.Font.GothamBold;
-		end;
-		if u14.overrideStats then
-			if u14.overrideStats.Credits then
-				local v120 = string.gsub(string.gsub(string.gsub(string.gsub(string.gsub(u14.overrideStats.Credits, "{song}", v101), "{rate}", u17), "{credits}", l__Value__100), "{difficulty}", l__Name__102), "{capdifficulty}", l__Name__102:upper());
-				if u14.overrideStats.Timer then
-					v120 = string.gsub(v120, "{timer}", u14.overrideStats.Timer);
-				end;
-				l__Parent__3.LowerContainer.Credit.Text = v120;
-			elseif u14.overrideStats.Timer then
-				l__Parent__3.LowerContainer.Credit.Text = v101 .. " (" .. l__Name__102 .. ")" .. " (" .. u17 .. "x)" .. "\n" .. l__Value__100 .. "\n" .. u14.overrideStats.Timer;
-			end;
-		end;
-	else
-		local l__Default__121 = game.ReplicatedStorage.UIStyles.Default;
-		u14 = require(l__Default__121.Config);
-		l__Parent__3.LowerContainer.Bar:Destroy();
-		l__Parent__3.LowerContainer.Stats:Destroy();
-		l__Default__121.Bar:Clone().Parent = l__Parent__3.LowerContainer;
-		l__Default__121.Stats:Clone().Parent = l__Parent__3.LowerContainer;
-		l__Parent__3.LowerContainer.PointsA.Font = Enum.Font.GothamBold;
-		l__Parent__3.LowerContainer.PointsB.Font = Enum.Font.GothamBold;
-	end;
-	v33();
-	u26 = require(l__Parent__3.Modules.Icons).SetIcons(l__Parent__3, v89);
-	updateUI();
-end;
-local u27 = {};
-function updateUI(p17)
-	if v22.Name == "L" then
-		local v122 = "R";
-	else
-		v122 = "L";
-	end;
-	local v123 = l__Game__7:FindFirstChild(v122);
-	if l__LocalPlayer__2.Input.VerticalBar.Value then
-		l__Parent__3.LowerContainer.Stats.Visible = false;
-		l__Parent__3.SideContainer.Accuracy.Visible = true;
-	end;
-	if l__LocalPlayer__2.Input.InfoBar.Value == false then
-		l__Parent__3.LowerContainer.Stats.Visible = false;
-		l__Parent__3.SideContainer.Accuracy.Visible = false;
-	end;
-	l__Parent__3.Stats.Visible = l__LocalPlayer__2.Input.ShowDebug.Value;
-	l__Parent__3.SideContainer.Data.Visible = l__LocalPlayer__2.Input.JudgementCounter.Value;
-	l__Parent__3.SideContainer.Extra.Visible = l__LocalPlayer__2.Input.ExtraData.Value;
-	if l__LocalPlayer__2.Input.ShowOpponentStats.Value then
-		if l__LocalPlayer__2.Input.Middlescroll.Value then
-			v123.OpponentStats.Visible = l__LocalPlayer__2.Input.ShowOtherMS.Value;
-		else
-			v123.OpponentStats.Visible = l__LocalPlayer__2.Input.ShowOpponentStats.Value;
-		end;
-		l__Game__7.L.OpponentStats.Label.Rotation = 180;
-		l__Game__7.R.OpponentStats.Label.Rotation = 180;
-	end;
-	if l__LocalPlayer__2.Input.HideScore.Value then
-		l__Parent__3.LowerContainer.PointsA.Visible = false;
-		l__Parent__3.LowerContainer.PointsB.Visible = false;
-	end;
-	if l__LocalPlayer__2.Input.HideCredits.Value then
-		l__Parent__3.LowerContainer.Credit.Visible = false;
-	end;
-	local v124, v125, v126 = pairs(l__Game__7.Templates:GetChildren());
-	while true do
-		local v127, v128 = v124(v125, v126);
-		if v127 then
+end)
 
-		else
-			break;
-		end;
-		v126 = v127;
-		v128.Frame.Bar.End.ImageTransparency = l__LocalPlayer__2.Input.BarOpacity.Value;
-		v128.Frame.Bar.ImageLabel.ImageTransparency = l__LocalPlayer__2.Input.BarOpacity.Value;	
-	end;
-	if not v89:FindFirstChild("NoSettings") then
-		if u14 ~= nil then
-			if u14.overrideStats then
-				if u14.overrideStats.Position then
-					if u14.overrideStats.Position.Upscroll then
-						l__Parent__3.LowerContainer.Stats.Position = u14.overrideStats.Position.Upscroll;
-					end;
-				end;
-			end;
-		end;
-		if u14 ~= nil then
-			if u14.overrideStats then
-				if u14.overrideStats.BarPosition then
-					if u14.overrideStats.BarPosition.Upscroll then
-						l__Parent__3.LowerContainer.Bar.Position = u14.overrideStats.BarPosition.Upscroll;
-					end;
-				end;
-			end;
-		end;
-		if u14 ~= nil then
-			if u14.overrideStats then
-				if u14.overrideStats.IconPosition then
-					l__Parent__3.LowerContainer.Bar.Player1.Sprite.Position = u14.overrideStats.IconPosition.P1.Upscroll;
-					l__Parent__3.LowerContainer.Bar.Player2.Sprite.Rotation = u14.overrideStats.IconPosition.P2.Upscroll;
-				end;
-			end;
-		end;
-		if l__LocalPlayer__2.Input.VerticalBar.Value then
-			if u14 ~= nil then
-				if not u14.OverrideVertical then
-					local l__Size__129 = l__Parent__3.LowerContainer.Bar.Size;
-					l__Parent__3.LowerContainer.Bar.Position = UDim2.new(1.1, 0, -4, 0);
-					l__Parent__3.LowerContainer.Bar.Size = UDim2.new(l__Size__129.X.Scale * 0.8, l__Size__129.X.Offset, l__Size__129.Y.Scale, l__Size__129.Y.Offset);
-					l__Parent__3.LowerContainer.Bar.Rotation = 90;
-					l__Parent__3.LowerContainer.Bar.Player1.Sprite.Rotation = -90;
-					l__Parent__3.LowerContainer.Bar.Player2.Sprite.Rotation = -90;
-				end;
-			end;
-		end;
-		if l__LocalPlayer__2.Input.Downscroll.Value then
-			local v130 = UDim2.new(0.5, 0, 8.9, 0);
-			if u14 ~= nil then
-				if u14.overrideStats then
-					if u14.overrideStats.Position then
-						if u14.overrideStats.Position.Downscroll then
-							v130 = u14.overrideStats.Position.Downscroll;
-						end;
-					end;
-				end;
-			end;
-			if u14 ~= nil then
-				if u14.overrideStats then
-					if u14.overrideStats.BarPosition then
-						if u14.overrideStats.BarPosition.Downscroll then
-							l__Parent__3.LowerContainer.Bar.Position = u14.overrideStats.BarPosition.Downscroll;
-						end;
-					end;
-				end;
-			end;
-			if u14 ~= nil then
-				if u14.overrideStats then
-					if u14.overrideStats.IconPosition then
-						l__Parent__3.LowerContainer.Bar.Player1.Sprite.Position = u14.overrideStats.IconPosition.P1.Downscroll;
-						l__Parent__3.LowerContainer.Bar.Player2.Sprite.Rotation = u14.overrideStats.IconPosition.P2.Downscroll;
-					end;
-				end;
-			end;
-			l__Game__7.Rotation = 180;
-			l__Game__7.Position = UDim2.new(0.5, 0, 0.05, 0);
-			l__Parent__3.LowerContainer.AnchorPoint = Vector2.new(0.5, 0);
-			l__Parent__3.LowerContainer.Position = UDim2.new(0.5, 0, 0.1, 0);
-			l__Parent__3.LowerContainer.Stats.Position = v130;
-			l__Parent__3.LowerContainer.Credit.Position = UDim2.new(-0.167, 0, -0.6, 0);
-			l__Game__7.R.Position = UDim2.new(0, 0, 0, 0);
-			l__Game__7.R.AnchorPoint = Vector2.new(0.1, 0);
-			l__Game__7.L.Position = UDim2.new(1, 0, 0, 0);
-			l__Game__7.L.AnchorPoint = Vector2.new(0.9, 0);
-			l__Game__7.L.Arrows.Rotation = 180;
-			l__Game__7.R.Arrows.Rotation = 180;
-			l__Game__7.L.SplashContainer.Rotation = 180;
-			l__Game__7.R.SplashContainer.Rotation = 180;
-			l__Game__7.L.OpponentStats.Label.Rotation = 0;
-			l__Game__7.R.OpponentStats.Label.Rotation = 0;
-			if l__LocalPlayer__2.Input.VerticalBar.Value then
-				if u14 ~= nil then
-					if not u14.OverrideVertical then
-						local l__Size__131 = l__Parent__3.LowerContainer.Bar.Size;
-						l__Parent__3.LowerContainer.Bar.Position = UDim2.new(1.1, 0, 4, 0);
-						l__Parent__3.LowerContainer.Bar.Rotation = 90;
-						l__Parent__3.LowerContainer.Bar.Player1.Sprite.Rotation = -90;
-						l__Parent__3.LowerContainer.Bar.Player2.Sprite.Rotation = -90;
-					end;
-				end;
-			end;
-			if not v90 then
-				l__Game__7.L.Arrows.IncomingNotes.Left.Rotation = 180;
-				l__Game__7.L.Arrows.IncomingNotes.Down.Rotation = 180;
-				l__Game__7.L.Arrows.IncomingNotes.Up.Rotation = 180;
-				l__Game__7.L.Arrows.IncomingNotes.Right.Rotation = 180;
-				l__Game__7.R.Arrows.IncomingNotes.Left.Rotation = 180;
-				l__Game__7.R.Arrows.IncomingNotes.Down.Rotation = 180;
-				l__Game__7.R.Arrows.IncomingNotes.Up.Rotation = 180;
-				l__Game__7.R.Arrows.IncomingNotes.Right.Rotation = 180;
-			else
-				l__Game__7.L.Arrows.IncomingNotes.Rotation = 180;
-				l__Game__7.R.Arrows.IncomingNotes.Rotation = 180;
-			end;
-			l__Game__7.L.Glow.Rotation = 180;
-			l__Game__7.R.Glow.Rotation = 180;
-		elseif p17 == "Downscroll" then
-			l__Game__7.Rotation = 0;
-			l__Game__7.Position = UDim2.new(0.5, 0, 0.125, 0);
-			l__Parent__3.LowerContainer.Position = UDim2.new(0.5, 0, 0.9, 0);
-			l__Parent__3.LowerContainer.Stats.Position = UDim2.new(0.5, 0, 1, 0);
-			l__Parent__3.LowerContainer.AnchorPoint = Vector2.new(0.5, 1);
-			l__Parent__3.LowerContainer.Credit.Position = UDim2.new(-0.167, 0, -8.582, 0);
-			l__Game__7.L.Position = UDim2.new(0, 0, 0, 0);
-			l__Game__7.L.AnchorPoint = Vector2.new(0.1, 0);
-			l__Game__7.R.Position = UDim2.new(1, 0, 0, 0);
-			l__Game__7.R.AnchorPoint = Vector2.new(0.9, 0);
-			if l__LocalPlayer__2.Input.VerticalBar.Value then
-				if u14 ~= nil then
-					if not u14.OverrideVertical then
-						local l__Size__132 = l__Parent__3.LowerContainer.Bar.Size;
-						l__Parent__3.LowerContainer.Bar.Position = UDim2.new(1.1, 0, -4, 0);
-						l__Parent__3.LowerContainer.Bar.Rotation = 90;
-						l__Parent__3.LowerContainer.Bar.Player1.Sprite.Rotation = -90;
-						l__Parent__3.LowerContainer.Bar.Player2.Sprite.Rotation = -90;
-					end;
-				end;
-			end;
-			l__Game__7.L.Arrows.Rotation = 0;
-			l__Game__7.R.Arrows.Rotation = 0;
-			if not v90 then
-				l__Game__7.L.Arrows.IncomingNotes.Left.Rotation = 0;
-				l__Game__7.L.Arrows.IncomingNotes.Down.Rotation = 0;
-				l__Game__7.L.Arrows.IncomingNotes.Up.Rotation = 0;
-				l__Game__7.L.Arrows.IncomingNotes.Right.Rotation = 0;
-				l__Game__7.R.Arrows.IncomingNotes.Left.Rotation = 0;
-				l__Game__7.R.Arrows.IncomingNotes.Down.Rotation = 0;
-				l__Game__7.R.Arrows.IncomingNotes.Up.Rotation = 0;
-				l__Game__7.R.Arrows.IncomingNotes.Right.Rotation = 0;
-			else
-				l__Game__7.L.Arrows.IncomingNotes.Rotation = 0;
-				l__Game__7.R.Arrows.IncomingNotes.Rotation = 0;
-			end;
-			l__Game__7.L.Glow.Rotation = 0;
-			l__Game__7.R.Glow.Rotation = 0;
-		end;
-		if l__LocalPlayer__2.Input.Middlescroll.Value then
-			v123.Visible = l__LocalPlayer__2.Input.ShowOtherMS.Value;
-			v22.Position = UDim2.new(0.5, 0, 0.5, 0);
-			v22.AnchorPoint = Vector2.new(0.5, 0.5);
-			if l__LocalPlayer__2.Input.ShowOtherMS.Value then
-				v123.OpponentStats.Size = UDim2.new(2, 0, 0.05, 0);
-				v123.OpponentStats.Position = UDim2.new(0.5, 0, -0.08, 0);
-				v123.AnchorPoint = Vector2.new(0.1, 0);
-				v123.Size = UDim2.new(0.15, 0, 0.3, 0);
-				v123.Position = v123.Name == "R" and UDim2.new(0.88, 0, 0.5, 0) or UDim2.new(0, 0, 0.5, 0);
-				if l__LocalPlayer__2.Input.Downscroll.Value then
-					v123.Position = v123.Name == "L" and UDim2.new(0.88, 0, 0.5, 0) or UDim2.new(0, 0, 0.5, 0);
-				end;
-			end;
-		elseif p17 == "Middlescroll" then
-			v123.Visible = true;
-			l__Game__7.L.Position = UDim2.new(0, 0, 0, 0);
-			l__Game__7.L.Size = UDim2.new(0.5, 0, 1, 0);
-			l__Game__7.L.AnchorPoint = Vector2.new(0.1, 0);
-			l__Game__7.R.AnchorPoint = Vector2.new(0.9, 0);
-			l__Game__7.R.Size = UDim2.new(0.5, 0, 1, 0);
-			l__Game__7.R.Position = UDim2.new(1, 0, 0, 0);
-			if l__LocalPlayer__2.Input.Downscroll.Value then
-				l__Game__7.R.Position = UDim2.new(0, 0, 0, 0);
-				l__Game__7.R.AnchorPoint = Vector2.new(0.1, 0);
-				l__Game__7.L.Position = UDim2.new(1, 0, 0, 0);
-				l__Game__7.L.AnchorPoint = Vector2.new(0.9, 0);
-			end;
-		end;
-	end;
-	u27.Stats = l__Parent__3.LowerContainer.Stats.Size;
-	local v133, v134, v135 = pairs(l__Parent__3.SideContainer:GetChildren());
-	while true do
-		local v136, v137 = v133(v134, v135);
-		if v136 then
+--// Icons
+local iconStuff = require(ui.Modules.Icons)
+iconData = iconStuff.SetIcons(ui, songholder)
 
-		else
-			break;
-		end;
-		v135 = v136;
-		if v137.ClassName == "TextLabel" then
-			u27[v137.Name] = v137.Size;
-		end;	
-	end;
-end;
-l__Events__5.ChangeUI.Event:Connect(function(p18)
-	ChangeUI(p18);
-end);
-local u28 = v89.Offset.Value + (l__LocalPlayer__2.Input.Offset.Value or 0);
-local l__Value__29 = v63.Notes.Value;
-local u30 = {
-	L = {}, 
+local succ, err = pcall(function() --// debugging
+	song = game.HttpService:JSONDecode(song).song
+end)
+
+if err then
+	song = game.HttpService:JSONDecode(require(game.ReplicatedStorage.Songs["/v/-tan"].Sage.Hard)).song
+end
+
+song.bpm = song.bpm
+
+local bps, bpm = 60 / (song.bpm or 120), song.bpm
+local sps = bps / 4
+
+local function digital_format(n)
+	return string.format("%d:%02d", math.floor(n/60), n%60)
+end
+
+local credit = songholder.Credits.Value
+local songName = (songholder.Parent.Parent.Parent.Name == "Songs" and songholder:IsA("ModuleScript")) and songholder.Parent.Name or songholder.Name
+local difficulty = stage.Config.Song.Value.Name
+
+local TimePosition = (stage.MusicPart.SERVERvocals.TimeLength - stage.MusicPart.SERVERvocals.TimePosition) / stage.MusicPart.SERVERvocals.PlaybackSpeed
+ui.LowerContainer.Credit.Text = songName.." (" .. difficulty .. ")" .. " (" .. playbackRate .. "x)" .. "\n"..credit.."\n"..digital_format(math.ceil(TimePosition))
+
+--// unique mobile buttons
+
+if songholder:FindFirstChild("MobileButtons") then
+	ui.MobileButtons:Destroy()
+	songholder.MobileButtons:Clone().Parent = ui
+end
+
+--// Preload countdown
+if songholder:FindFirstChild("Countdown") and game.ReplicatedStorage.Countdowns:FindFirstChild(songholder.Countdown.Value) then
+	local conf = require(game.ReplicatedStorage.Countdowns:FindFirstChild(songholder.Countdown.Value).Config)
+	local data = {}
+
+	if conf.Images ~= nil then
+		for i,v in pairs(conf.Images) do
+			table.insert(data,v)
+		end
+	end
+
+	if conf.Audio ~= nil then
+		for i,v in pairs(conf.Audio) do
+			table.insert(data,v)
+		end
+	end
+
+	game.ContentProvider:PreloadAsync(data)
+end
+
+--// modcharts and conductor
+
+local modchartsEnabled = Util.ModchartCheck(ui, songholder, song)
+local conductor = Conductor.Start(ui, songholder:FindFirstChild("Modchart"), bpm, modchartsEnabled, song, playbackRate)
+
+--// Quick offsetting
+local Functions = require(ui.Modules.Functions)
+
+Functions.keyCheck(songholder, nineKey, sixKey, sevenKey, fiveKey)
+local offset = songholder.Offset.Value + (player.Input.Offset.Value or 0)
+
+local SongNoteConvert; if songholder:FindFirstChild("notetypeconvert") then SongNoteConvert = require(songholder.notetypeconvert); end
+
+Functions.stuffCheck(songholder)
+local convert = songholder:FindFirstChild("notetypeconvert") and SongNoteConvert.notetypeconvert or Functions.notetypeconvert
+
+if SongNoteConvert and SongNoteConvert.newKeys then SongNoteConvert.newKeys(ui); specialSong = true end
+
+--// check to see if a players settings have changed
+
+local otherPlayer
+if not stage.Config.SinglePlayerEnabled.Value then
+	if stage.Config.Player1.Value == player then
+		otherPlayer = stage.Config.Player2.Value
+	else
+		otherPlayer = stage.Config.Player1.Value
+	end
+end
+
+local otherSkinType = otherPlayer and game.ReplicatedStorage.Skins:FindFirstChild(otherPlayer.Input.Skin.Value) or game.ReplicatedStorage.Skins.Default
+local otherSkin = otherSkinType.Notes.Value
+
+main.L.Arrows.IncomingNotes.DescendantAdded:Connect(function(arrow)
+	if not (main.Rotation >= 90) then return end
+	if songholder:FindFirstChild("NoSettings") then return end
+	if arrow:IsA("Frame") and arrow:FindFirstChild("Frame") then
+		arrow.Rotation = 180
+		arrow.Frame.Rotation = 180
+		arrow.Frame.Arrow.Rotation = 180
+	end
+end)
+
+main.R.Arrows.IncomingNotes.DescendantAdded:Connect(function(arrow)
+	if not (main.Rotation >= 90) then return end
+	if songholder:FindFirstChild("NoSettings") then return end
+	if arrow:IsA("Frame") and arrow:FindFirstChild("Frame") then
+		arrow.Rotation = 180
+		arrow.Frame.Rotation = 180
+		arrow.Frame.Arrow.Rotation = 180
+	end
+end)
+
+local AnimatedReceptors = {
+	L = {},
 	R = {}
-};
-local l__Value__31 = v116.Notes.Value;
-local l__Value__32 = v64.Notes.Value;
-local v138 = require(game.ReplicatedStorage.Modules.Device);
-local v139 = {
-	L4 = "A", 
-	L3 = "S", 
-	L2 = "D", 
-	L1 = "F", 
-	Space = "Space", 
-	R1 = "H", 
-	R2 = "J", 
-	R3 = "K", 
-	R4 = "L"
-};
-if not v92 or v94 then
-	v139 = {
-		L3 = "S", 
-		L2 = "D", 
-		L1 = "F", 
-		Space = "Space", 
-		R1 = "J", 
-		R2 = "K", 
-		R3 = "L"
-	};
-end;
-if not v92 and not v93 and not v91 then
-	v139 = {
-		L2 = "D", 
-		L1 = "F", 
-		Space = "Space", 
-		R1 = "J", 
-		R2 = "K"
-	};
-end;
-_G.Animations = {};
-if v89:FindFirstChild(l__Parent__3.PlayerSide.Value .. "_Anims") then
-	local v140 = v89[l__Parent__3.PlayerSide.Value .. "_Anims"].Value;
-else
-	v140 = game.ReplicatedStorage.Animations:FindFirstChild(l__LocalPlayer__2.Input.Animation.Value) or (v14.findAnim(l__LocalPlayer__2.Input.Animation.Value) or game.ReplicatedStorage.Animations.Default);
-end;
-local u33 = {};
-local u34 = nil;
-local l__Animations__35 = _G.Animations;
-local u36 = nil;
-v1 = function(p19, p20, p21)
-	if l__Parent__3.PlayerSide.Value == "R" then
-		p19 = p19.Mirrored;
-	end;
-	if p21 then
-		local v141, v142, v143 = ipairs(p19:GetChildren());
-		while true do
-			v141(v142, v143);
-			if not v141 then
-				break;
-			end;
-			v143 = v141;
-			if v142:IsA("Animation") then
-				u33[v142.Name] = p20:LoadAnimation(v142);
-			end;		
-		end;
-		u34 = u33.Idle;
-		return;
-	end;
-	if not p20 then
-		p20 = l__LocalPlayer__2.Character.Humanoid;
-	end;
-	local v144, v145, v146 = ipairs(p19:GetChildren());
-	while true do
-		v144(v145, v146);
-		if not v144 then
-			break;
-		end;
-		v146 = v144;
-		if v145:IsA("Animation") then
-			l__Animations__35[v145.Name] = p20:LoadAnimation(v145);
-		end;	
-	end;
-	u36 = l__Animations__35.Idle;
-end;
-if v140:FindFirstChild("Custom") then
-	v1(v140, l__LocalPlayer__2.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("Humanoid"));
-elseif v140:FindFirstChild("FBX") then
-	v1(v140, l__LocalPlayer__2.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("AnimationController"):WaitForChild("Animator"));
-elseif v140:FindFirstChild("2Player") then
-	v1(v140.Other, l__LocalPlayer__2.Character:WaitForChild("char2"):WaitForChild("Dummy"):WaitForChild("Humanoid"), true);
-	v1(v140, l__LocalPlayer__2.Character.Humanoid);
-elseif v140:FindFirstChild("Custom2Player") then
-	v1(v140.Other, l__LocalPlayer__2.Character:WaitForChild("char2"):WaitForChild("Dummy"):WaitForChild("Humanoid"), true);
-	v1(v140, l__LocalPlayer__2.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("Humanoid"));
-else
-	v1(v140);
-end;
-local u37 = Random.new();
-local u38 = {};
-local u39 = nil;
-local u40 = nil;
-local u41 = 0;
-local u42 = {
-	Left = false, 
-	Down = false, 
-	Up = false, 
-	Right = false
-};
-if not tonumber(u25.speed) then
-	u25.speed = 2.8;
-end;
-local l__speed__147 = u25.speed;
-u25.speed = l__LocalPlayer__2.Input.ScrollSpeedChange.Value and l__LocalPlayer__2.Input.ScrollSpeed.Value + 1.5 or (u25.speed or 3.3);
-if v90 then
-	local v148 = 0.25;
-	if v94 then
-		v148 = 0.24875621890547267;
-	elseif v91 then
-		v148 = 0.24752475247524752;
-	elseif v93 then
-		v148 = 0.23584905660377356;
-	elseif v92 then
-		v148 = 0.2293577981651376;
-	end;
-	u25.speed = u25.speed / (0.25 / v148);
-end;
-if u34 then
-	u34:AdjustSpeed(u25.speed);
-	u36:AdjustSpeed(u25.speed);
-	u34.Looped = true;
-	u36.Looped = true;
-	u34.Priority = Enum.AnimationPriority.Idle;
-	u36.Priority = Enum.AnimationPriority.Idle;
-	u36:Play();
-	u34:Play();
-else
-	u36:AdjustSpeed(u25.speed);
-	u36.Looped = true;
-	u36.Priority = Enum.AnimationPriority.Idle;
-	u36:Play();
-end;
-local v149 = 0.75 * u25.speed;
-l__Config__4.MaxDist.Value = v149;
-local v150 = Instance.new("Sound");
-v150.Name = "HitSound";
-v150.Parent = l__Parent__3;
-v150.SoundId = "rbxassetid://" .. l__LocalPlayer__2.Input.HitSoundsValue.Value or "rbxassetid://3581383408";
-v150.Volume = l__LocalPlayer__2.Input.HitSoundVolume.Value;
-local u43 = {
-	Left = false, 
-	Down = false, 
-	Up = false, 
-	Right = false
-};
-local u44 = false;
-local function u45(p22)
-	local v151 = nil;
-	local v152, v153, v154 = ipairs(v22.Arrows.IncomingNotes[p22]:GetChildren());
-	while true do
-		v152(v153, v154);
-		if not v152 then
-			break;
-		end;
-		v154 = v152;
-		if (v153.Name == p22 or string.split(v153.Name, "_")[1] == p22) and (math.abs(string.split(v153:GetAttribute("NoteData"), "~")[1] - (v14.tomilseconds(l__Config__4.TimePast.Value) + u28)) <= v15.Ghost and v153.Frame.Arrow.Visible) then
-			if not v151 then
-				v151 = v153;
-			elseif (v153.AbsolutePosition - v153.Parent.AbsolutePosition).magnitude <= (v151.AbsolutePosition - v153.Parent.AbsolutePosition).magnitude then
-				v151 = v153;
-			end;
-		end;	
-	end;
-	if v151 then
-		return;
-	end;
-	return true;
-end;
-local u46 = v89:FindFirstChild("Modchart") and (v89.Modchart:IsA("ModuleScript") and (v110 and require(v89.Modchart)));
-local function u47(p23)
-	local v155 = p23;
-	if v90 then
-		if v92 then
-			if v155 == "A" or v155 == "H" then
-				v155 = "Left";
-			end;
-			if v155 == "S" or v155 == "J" then
-				v155 = "Down";
-			end;
-			if v155 == "D" or v155 == "K" or v155 == "Space" then
-				v155 = "Up";
-			end;
-			if v155 == "F" or v155 == "L" then
-				v155 = "Right";
-			end;
-		elseif v91 or v93 then
-			if v155 == "S" or v155 == "J" then
-				v155 = "Left";
-			end;
-			if v155 == "D" or v155 == "Space" then
-				v155 = "Up";
-			end;
-			if v155 == "K" then
-				v155 = "Down";
-			end;
-			if v155 == "F" or v155 == "L" then
-				v155 = "Right";
-			end;
-		elseif v94 then
-			if v155 == "D" then
-				v155 = "Left";
-			end;
-			if v155 == "F" or v155 == "Space" then
-				v155 = "Up";
-			end;
-			if v155 == "J" then
-				v155 = "Down";
-			end;
-			if v155 == "K" then
-				v155 = "Right";
-			end;
-		elseif v113 and v113.getAnimationDirection then
-			v155 = v113.getAnimationDirection(v155);
-		end;
-	end;
-	if v140:FindFirstChild(v155) then
-		if v22.Name == "L" then
-			local v156 = v155;
-			if not v156 then
-				if v155 == "Right" then
-					v156 = "Left";
-				elseif v155 == "Left" then
-					v156 = "Right";
-				else
-					v156 = v155;
-				end;
-			end;
-		elseif v155 == "Right" then
-			v156 = "Left";
-		elseif v155 == "Left" then
-			v156 = "Right";
-		else
-			v156 = v155;
-		end;
-		local v157 = v140[v156];
-		local v158 = _G.Animations[v156];
-		v158.Looped = false;
-		v158.TimePosition = 0;
-		v158.Priority = Enum.AnimationPriority.Movement;
-		if u39 and u39 ~= v158 then
-			u39:Stop(0);
-		end;
-		u39 = v158;
-		local v159 = u33[v156];
-		if v159 then
-			local v160 = v140.Other[v156];
-			v159.Looped = false;
-			v159.TimePosition = 0;
-			v159.Priority = Enum.AnimationPriority.Movement;
-			if u40 and u40 ~= v159 then
-				u40:Stop(0);
-			end;
-			u40 = v159;
-		end;
-		task.spawn(function()
-			u41 = u41 + 1;
-			while u42[p23] and u41 == u41 do
-				v158:Play(0);
-				if v159 then
-					v159:Play(0);
-				end;
-				for v161, v162 in u26, nil do
-					if typeof(v162) ~= "string" and (v161 ~= 1 or v22.Name ~= "R") and (v161 ~= 2 or v22.Name ~= "L") then
-						local v163 = nil;
-						if v162.Animations then
-							for v164, v165 in v162.Animations, nil do
-								if v164 == v156 then
-									v163 = v165;
-									break;
-								end;
-							end;
-						end;
-						if v163 then
-							v162:PlayAnimation(v156);
-						end;
-					end;
-				end;
-				task.wait(0.1);			
-			end;
-			task.wait(v158.Length - 0.15);
-			if u41 == u41 then
-				v158:Stop(0);
-				for v166, v167 in u26, nil do
-					if typeof(v167) ~= "string" and (v166 ~= 1 or v22.Name ~= "R") and (v166 ~= 2 or v22.Name ~= "L") then
-						v167:PlayAnimation("Neutral");
-					end;
-				end;
-				if l__Parent__3.Side.Value == l__Parent__3.PlayerSide.Value and l__LocalPlayer__2.Input.MoveOnHit.Value then
-					local l__Value__168 = l__Parent__3.Side.Value;
-					local v169 = workspace.ClientBG:FindFirstChildOfClass("Model");
-					local v170 = v89:FindFirstChild("Modchart") and (v89.Modchart:IsA("ModuleScript") and (v110 and require(v89.Modchart)));
-					if v170 and v170.CameraReset then
-						v170.CameraReset();
-					end;
-					if v170 and v170.OverrideCamera then
-						return;
-					end;
-					l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.MoveSpeed.Value, v9, Enum.EasingDirection.Out), {
-						CFrame = (v169 and v169:FindFirstChild("cameraPoints") and v169.cameraPoints:FindFirstChild(l__Value__168) or (l__Value__6.CameraPoints:FindFirstChild(l__Value__168) or l__Value__6.CameraPoints.C)).CFrame
-					}):Play();
-				end;
-				if v159 then
-					v159:Stop(0);
-				end;
-			end;
-		end);
-	end;
-end;
-local function u48(p24)
-	if v90 and not v113 then
-		return;
-	end;
-	if not l__LocalPlayer__2.Input.NoteSplashes.Value then
-		return;
-	end;
-	if not game.ReplicatedStorage.Misc.Splashes:FindFirstChild(p24) then
-		return;
-	end;
-	task.spawn(function()
-		local v171 = game.ReplicatedStorage.Misc.Splashes[p24]:GetChildren();
-		local v172 = v171[math.random(1, #v171)]:Clone();
-		v172.Parent = v22.SplashContainer;
-		v172.Position = v22.Arrows[p24].Position;
-		v172.Image = (game.ReplicatedStorage.Splashes:FindFirstChild(l__LocalPlayer__2.Input.NoteSplashSkin.Value) or game.ReplicatedStorage.Splashes.Default).Splash.Value;
-		v172.Size = UDim2.fromScale(l__LocalPlayer__2.Input.SplashSize.Value * v172.Size.X.Scale, l__LocalPlayer__2.Input.SplashSize.Value * v172.Size.Y.Scale);
-		local l__X__173 = v172.ImageRectOffset.X;
-		for v174 = 0, 8 do
-			v172.ImageRectOffset = Vector2.new(l__X__173, v174 * 128);
-			task.wait(0.035);
-		end;
-		v172:Destroy();
-	end);
-end;
-local function u49(p25, p26)
-	if not l__LocalPlayer__2.Input.MoveOnHit.Value then
-		return;
-	end;
-	local l__Value__175 = l__Parent__3.Side.Value;
-	local v176 = workspace.ClientBG:FindFirstChildOfClass("Model");
-	local v177 = v89:FindFirstChild("Modchart") and (v89.Modchart:IsA("ModuleScript") and (v110 and require(v89.Modchart)));
-	if v177 and v177.OverrideCamera then
-		return;
-	end;
-	local v178 = v176 and v176:FindFirstChild("cameraPoints") and v176.cameraPoints:FindFirstChild(l__Value__175) or (l__Value__6.CameraPoints:FindFirstChild(l__Value__175) or l__Value__6.CameraPoints.C);
-	if l__Parent__3.PlayerSide.Value == l__Parent__3.Side.Value and not p26 or l__Parent__3.PlayerSide.Value ~= l__Parent__3.Side.Value and p26 then
-		if p25 == "Up" then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.MoveSpeed.Value, v9, Enum.EasingDirection.Out), {
-				CFrame = v178.CFrame * CFrame.new(0, l__LocalPlayer__2.Input.MoveIntensity.value, 0)
-			}):Play();
-		end;
-		if p25 == "Left" then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.MoveSpeed.Value, v9, Enum.EasingDirection.Out), {
-				CFrame = v178.CFrame * CFrame.new(-l__LocalPlayer__2.Input.MoveIntensity.value, 0, 0)
-			}):Play();
-		end;
-		if p25 == "Down" then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.MoveSpeed.Value, v9, Enum.EasingDirection.Out), {
-				CFrame = v178.CFrame * CFrame.new(0, -l__LocalPlayer__2.Input.MoveIntensity.value, 0)
-			}):Play();
-		end;
-		if p25 == "Right" then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.MoveSpeed.Value, v9, Enum.EasingDirection.Out), {
-				CFrame = v178.CFrame * CFrame.new(l__LocalPlayer__2.Input.MoveIntensity.value, 0, 0)
-			}):Play();
-		end;
-	end;
-end;
-local l__UserInput__50 = l__Events__5.UserInput;
-local function u51(p27, p28)
-	if not l__LocalPlayer__2.Input.ShowRatings.Value then
-		return;
-	end;
-	local v179 = p28 and v22 or (l__Parent__3.PlayerSide.Value == "L" and l__Game__7.R or l__Game__7.L);
-	local l__Value__180 = l__LocalPlayer__2.Input.RatingStyle.Value;
-	if l__Value__180 == "FNB" then
-		local v181 = v179:FindFirstChildOfClass("ImageLabel");
-		if v181 then
-			v181.Parent = nil;
-		end;
-		local v182 = v179:FindFirstChildOfClass("TextLabel");
-		if v182 then
-			v182.Parent = nil;
-		end;
-		local l__Value__183 = l__LocalPlayer__2.Input.RatingSize.Value;
-		local v184 = game.ReplicatedStorage.Misc.IndicatorTemplate:Clone();
-		v184.Image = "rbxthumb://type=Asset&id=" .. l__LocalPlayer__2.Input[p27 .. "IndicatorImg"].Value .. "&w=150&h=150" or l__Value__6.FlyingText.G["Template_" .. p27].Image;
-		v184.Parent = v179;
-		v184.Size = UDim2.new(0.25 * l__Value__183, 0, 0.083 * l__Value__183, 0);
-		v184.ImageTransparency = 0;
-		if l__Game__7.Rotation >= 90 then
-			local v185 = 180;
-		else
-			v185 = 0;
-		end;
-		v184.Rotation = v185;
-		game:GetService("Debris"):AddItem(v184, 1.5);
-		if l__LocalPlayer__2.Input.CenterRatings.Value then
-			v184.Position = UDim2.new(0.5, 0, 0.45, 0);
-		end;
-		task.spawn(function()
-			if l__LocalPlayer__2.Input.RatingBounce.Value then
-				l__TweenService__17:Create(v184, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-					Size = UDim2.new(0.3 * l__Value__183, 0, 0.1 * l__Value__183, 0)
-				}):Play();
-			end;
-			task.wait(0.1);
-			l__TweenService__17:Create(v184, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Size = UDim2.new(0.25 * l__Value__183, 0, 0.083 * l__Value__183, 0)
-			}):Play();
-			task.wait(0.5);
-			l__TweenService__17:Create(v184, TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				ImageTransparency = 1
-			}):Play();
-		end);
-		local v186 = game.ReplicatedStorage.Misc.miliseconds:Clone();
-		v186.Visible = l__LocalPlayer__2.Input.ShowMS.Value;
-		v186.Parent = v179;
-		v186.Size = UDim2.new(0.145 * l__Value__183, 0, 0.044 * l__Value__183, 0);
-		if l__Game__7.Rotation >= 90 then
-			local v187 = 180;
-		else
-			v187 = 0;
-		end;
-		v186.Rotation = v187;
-		v186.Text = math.floor(p28 * 100 + 0.5) / 100 .. " ms";
-		if p28 < 0 then
-			v186.TextColor3 = Color3.fromRGB(255, 61, 61);
-		else
-			v186.TextColor3 = Color3.fromRGB(120, 255, 124);
-		end;
-		game:GetService("Debris"):AddItem(v186, 1.5);
-		if l__LocalPlayer__2.Input.CenterRatings.Value then
-			v186.Position = UDim2.new(0.5, 0, 0.36, 0);
-		end;
-		task.spawn(function()
-			if l__LocalPlayer__2.Input.RatingBounce.Value then
-				l__TweenService__17:Create(v186, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-					Size = UDim2.new(0.165 * l__Value__183, 0, 0.06 * l__Value__183, 0)
-				}):Play();
-			end;
-			task.wait(0.1);
-			l__TweenService__17:Create(v186, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Size = UDim2.new(0.145 * l__Value__183, 0, 0.044 * l__Value__183, 0)
-			}):Play();
-			task.wait(0.5);
-			l__TweenService__17:Create(v186, TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				TextTransparency = 1
-			}):Play();
-			l__TweenService__17:Create(v186, TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				TextStrokeTransparency = 1
-			}):Play();
-		end);
-	elseif l__Value__180 == "FNF" then
-		local l__Value__188 = l__LocalPlayer__2.Input.RatingSize.Value;
-		local v189 = game.ReplicatedStorage.Misc.IndicatorTemplate:Clone();
-		v189.Image = "rbxthumb://type=Asset&id=" .. l__LocalPlayer__2.Input[p27 .. "IndicatorImg"].Value .. "&w=150&h=150" or l__Value__6.FlyingText.G["Template_" .. p27].Image;
-		v189.Parent = v179;
-		v189.Size = UDim2.new(0.25 * l__Value__188, 0, 0.083 * l__Value__188, 0);
-		v189.ImageTransparency = 0;
-		if l__Game__7.Rotation >= 90 then
-			local v190 = 180;
-		else
-			v190 = 0;
-		end;
-		v189.Rotation = v190;
-		if l__LocalPlayer__2.Input.Downscroll.Value then
-			v189:SetAttribute("Acceleration", Vector2.new(0, -550));
-			v189:SetAttribute("Velocity", Vector2.new(u37:NextInteger(0, 10), u37:NextInteger(140, 175)));
-		else
-			v189:SetAttribute("Acceleration", Vector2.new(0, 550));
-			v189:SetAttribute("Velocity", Vector2.new(u37:NextInteger(0, 10), -u37:NextInteger(140, 175)));
-		end;
-		if l__LocalPlayer__2.Input.CenterRatings.Value then
-			v189.Position = UDim2.new(0.5, 0, 0.45, 0);
-		end;
-		table.insert(u38, v189);
-		local v191 = game:service("TweenService"):Create(v189, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, v13.crochet * 0.001), {
-			ImageTransparency = 1
-		});
-		v191:Play();
-		v191.Completed:connect(function()
-			v189:destroy();
-			pcall(game.Destroy, v191);
-		end);
-		local v192 = game.ReplicatedStorage.Misc.miliseconds:Clone();
-		v192.Visible = l__LocalPlayer__2.Input.ShowMS.Value;
-		v192.Parent = v179;
-		v192.Size = UDim2.new(0.145 * l__Value__188, 0, 0.044 * l__Value__188, 0);
-		if l__Game__7.Rotation >= 90 then
-			local v193 = 180;
-		else
-			v193 = 0;
-		end;
-		v192.Rotation = v193;
-		v192.Text = math.floor(p28 * 100 + 0.5) / 100 .. " ms";
-		if p28 < 0 then
-			v192.TextColor3 = Color3.fromRGB(255, 61, 61);
-		else
-			v192.TextColor3 = Color3.fromRGB(120, 255, 124);
-		end;
-		if l__LocalPlayer__2.Input.Downscroll.Value then
-			v192:SetAttribute("Acceleration", Vector2.new(0, -550));
-			v192:SetAttribute("Velocity", Vector2.new(u37:NextInteger(0, 10), u37:NextInteger(140, 175)));
-		else
-			v192:SetAttribute("Acceleration", Vector2.new(0, 550));
-			v192:SetAttribute("Velocity", Vector2.new(u37:NextInteger(0, 10), -u37:NextInteger(140, 175)));
-		end;
-		table.insert(u38, v192);
-		if l__LocalPlayer__2.Input.CenterRatings.Value then
-			v192.Position = UDim2.new(0.5, 0, 0.36, 0);
-		end;
-		local v194 = game:service("TweenService"):Create(v192, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, v13.crochet * 0.001), {
-			TextTransparency = 1, 
-			TextStrokeTransparency = 1
-		});
-		v194:Play();
-		v194.Completed:connect(function()
-			v192:destroy();
-			pcall(game.Destroy, v194);
-		end);
-	end;
-	if not p28 then
-		p28 = p27;
-		if p28 <= v15.Marvelous and l__LocalPlayer__2.Input.ShowMarvelous.Value then
-			p27 = "Marvelous";
-			return;
-		end;
-		if p28 <= v15.Sick then
-			p27 = "Sick";
-			return;
-		end;
-		if p28 <= v15.Good then
-			p27 = "Good";
-			return;
-		end;
-		if p28 <= v15.Ok then
-			p27 = "Ok";
-			return;
-		end;
-		if p28 <= v15.Bad then
-			p27 = "Bad";
-		end;
-	end;
-end;
-local function v195(p29, p30, p31, p32, p33)
-	if not p30 then
-		return;
-	end;
-	if p32 then
-		u43[p30] = p29.UserInputState == Enum.UserInputState.Begin;
-		if l__Parent__3.PlayerSide.Value == "L" then
-			local v196 = "R";
-		else
-			v196 = "L";
-		end;
-		p32 = l__Game__7:FindFirstChild(v196);
-	end;
-	if not p32 then
-		u42[p30] = p29.UserInputState == Enum.UserInputState.Begin;
-	end;
-	if l__Config__4.CantHitNotes.Value then
-		return;
-	end;
-	if not v90 and l__Config__4.DisabledLanes[p30].Value then
-		return;
-	end;
-	if u44 == true then
-		local v197 = "Bloxxin";
-	else
-		v197 = l__LocalPlayer__2.Input.InputType.Value;
-	end;
-	local v198 = nil;
-	if not u42[p30] and p29.UserInputState ~= Enum.UserInputState.Begin then
-		return;
-	end;
-	if not v22.Arrows.IncomingNotes:FindFirstChild(p30) then
-		return;
-	end;
-	local v199, v200, v201 = ipairs((p32 or v22).Arrows.IncomingNotes[p30]:GetChildren());
-	while true do
-		v199(v200, v201);
-		if not v199 then
-			break;
-		end;
-		v201 = v199;
-		if v200.Name == p30 or string.split(v200.Name, "_")[1] == p30 then
-			local v202 = v200:GetAttribute("NoteData");
-			local v203 = string.split(v202, "~")[1] - (v14.tomilseconds(l__Config__4.TimePast.Value) + u28);
-			if not p32 then
-				if v200.Frame.Arrow.Visible and (not v200.Frame.Arrow:GetAttribute("hit") and math.abs(v203) <= v15.Bad) then
-					if not v198 then
-						v198 = v200;
-					elseif v197 == "Bloxxin" then
-						if (v200.AbsolutePosition - v200.Parent.AbsolutePosition).magnitude <= (v198.AbsolutePosition - v200.Parent.AbsolutePosition).magnitude then
-							v198 = v200;
-						end;
-					elseif v203 < string.split(v202, "~")[1] - (v14.tomilseconds(l__Config__4.TimePast.Value) + u28) then
-						v198 = v200;
-					end;
-				end;
-			elseif v202 == p31 then
-				v198 = v200;
-				break;
-			end;
-		end;	
-	end;
-	if l__Config__4.GhostTappingEnabled.Value and not v198 and not p32 and u45(p30) then
-		v198 = "ghost";
-	end;
-	local v204 = u46 and u46.FakeHit;
-	if p32 then
-		if v198 then
-			u49(p30, true);
-			if v204 then
-				v198.Frame.Arrow:SetAttribute("hit", true);
-			else
-				v198.Frame.Arrow.Visible = false;
-			end;
-			if p29.UserInputState ~= Enum.UserInputState.Begin then
-				return;
-			else
-				local v205 = nil;
-				local v206 = nil;
-				local v207 = nil;
-				p32.Glow[p30].Arrow.ImageTransparency = 1;
-				if v113 and v113.Glow then
-					v113.Glow(p30, true);
-				else
-					p32.Glow[p30].Arrow.Visible = true;
-				end;
-				if p32.Glow[p30].Arrow.ImageTransparency == 1 then
-					if not l__LocalPlayer__2.Input.DisableArrowGlow.Value then
-						local v208 = nil;
-						local v209 = nil;
-						local v210 = nil;
-						local v211 = nil;
-						local v212 = nil;
-						local v213 = nil;
-						local v214 = nil;
-						local v215 = nil;
-						local v216 = nil;
-						local v217 = nil;
-						local v218 = nil;
-						local v219 = nil;
-						local v220 = nil;
-						local v221 = nil;
-						local v222 = nil;
-						local v223 = nil;
-						local v224 = nil;
-						local v225 = nil;
-						if not u30[p32.Name][p30] then
-							local u52 = false;
-							local u53 = nil;
-							u53 = l__RunService__19.RenderStepped:Connect(function()
-								if u52 then
-									u53:Disconnect();
-									p32.Glow[p30].Arrow.ImageTransparency = 1;
-									return;
-								end;
-								p32.Glow[p30].Arrow.ImageTransparency = 0.2 - math.cos(tick() * 10 * math.pi) / 6;
-							end);
-							v208 = "Frame";
-							v209 = v198;
-							v210 = v208;
-							v211 = v209[v210];
-							local v226 = "Bar";
-							v212 = v211;
-							v213 = v226;
-							v214 = v212[v213];
-							local v227 = "Size";
-							v215 = v214;
-							v216 = v227;
-							v217 = v215[v216];
-							local v228 = "Y";
-							v218 = v217;
-							v219 = v228;
-							v220 = v218[v219];
-							local v229 = "Scale";
-							v222 = v220;
-							v223 = v229;
-							v221 = v222[v223];
-							local v230 = 0;
-							v224 = v230;
-							v225 = v221;
-							if v224 < v225 then
-								local v231 = tick();
-								while true do
-									v14.wait();
-									local v232 = v198.Position.Y.Scale;
-									if v90 then
-										local v233 = 0.25;
-										if v94 then
-											v233 = 0.24875621890547267;
-										elseif v91 then
-											v233 = 0.24752475247524752;
-										elseif v93 then
-											v233 = 0.23584905660377356;
-										elseif v92 then
-											v233 = 0.2293577981651376;
-										end;
-										v232 = v232 * (0.25 / v233);
-									end;
-									if v232 < 0 and not v204 then
-										v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(v221 + v232, 0, 20), 0);
-										v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v232, 0);
-									end;
-									if not u43[p30] then
-										break;
-									end;
-									if v198.Frame.Bar.Size.Y.Scale == 0 then
-										break;
-									end;
-									if tick() - v231 > 7.5 then
-										break;
-									end;								
-								end;
-							else
-								v14.wait(0.175);
-							end;
-							local v234 = true;
-							v205 = v113;
-							v206 = v205;
-							if v206 and v113.Glow then
-								v113.Glow(p30, false);
-							else
-								p32.Glow[p30].Arrow.Visible = false;
-							end;
-							local v235 = u46;
-							v207 = v235;
-							if v207 and u46.OpponentHit then
-								u46.OpponentHit(l__Parent__3, p30);
-							end;
-							return;
-						elseif not l__LocalPlayer__2.Input.DisableArrowGlow.Value and u30[p32.Name][p30] then
-							if false then
-								u24:Disconnect();
-								u30[p32.Name][p30]:PlayAnimation("Receptor");
-								return;
-							else
-								u30[p32.Name][p30]:PlayAnimation("Glow");
-								v208 = "Frame";
-								v209 = v198;
-								v210 = v208;
-								v211 = v209[v210];
-								v226 = "Bar";
-								v212 = v211;
-								v213 = v226;
-								v214 = v212[v213];
-								v227 = "Size";
-								v215 = v214;
-								v216 = v227;
-								v217 = v215[v216];
-								v228 = "Y";
-								v218 = v217;
-								v219 = v228;
-								v220 = v218[v219];
-								v229 = "Scale";
-								v222 = v220;
-								v223 = v229;
-								v221 = v222[v223];
-								v230 = 0;
-								v224 = v230;
-								v225 = v221;
-								if v224 < v225 then
-									v231 = tick();
-									while true do
-										v14.wait();
-										v232 = v198.Position.Y.Scale;
-										if v90 then
-											v233 = 0.25;
-											if v94 then
-												v233 = 0.24875621890547267;
-											elseif v91 then
-												v233 = 0.24752475247524752;
-											elseif v93 then
-												v233 = 0.23584905660377356;
-											elseif v92 then
-												v233 = 0.2293577981651376;
-											end;
-											v232 = v232 * (0.25 / v233);
-										end;
-										if v232 < 0 and not v204 then
-											v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(v221 + v232, 0, 20), 0);
-											v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v232, 0);
-										end;
-										if not u43[p30] then
-											break;
-										end;
-										if v198.Frame.Bar.Size.Y.Scale == 0 then
-											break;
-										end;
-										if tick() - v231 > 7.5 then
-											break;
-										end;									
-									end;
-								else
-									v14.wait(0.175);
-								end;
-								v234 = true;
-								v205 = v113;
-								v206 = v205;
-								if v206 and v113.Glow then
-									v113.Glow(p30, false);
-								else
-									p32.Glow[p30].Arrow.Visible = false;
-								end;
-								v235 = u46;
-								v207 = v235;
-								if v207 and u46.OpponentHit then
-									u46.OpponentHit(l__Parent__3, p30);
-								end;
-								return;
-							end;
-						else
-							v208 = "Frame";
-							v209 = v198;
-							v210 = v208;
-							v211 = v209[v210];
-							v226 = "Bar";
-							v212 = v211;
-							v213 = v226;
-							v214 = v212[v213];
-							v227 = "Size";
-							v215 = v214;
-							v216 = v227;
-							v217 = v215[v216];
-							v228 = "Y";
-							v218 = v217;
-							v219 = v228;
-							v220 = v218[v219];
-							v229 = "Scale";
-							v222 = v220;
-							v223 = v229;
-							v221 = v222[v223];
-							v230 = 0;
-							v224 = v230;
-							v225 = v221;
-							if v224 < v225 then
-								v231 = tick();
-								while true do
-									v14.wait();
-									v232 = v198.Position.Y.Scale;
-									if v90 then
-										v233 = 0.25;
-										if v94 then
-											v233 = 0.24875621890547267;
-										elseif v91 then
-											v233 = 0.24752475247524752;
-										elseif v93 then
-											v233 = 0.23584905660377356;
-										elseif v92 then
-											v233 = 0.2293577981651376;
-										end;
-										v232 = v232 * (0.25 / v233);
-									end;
-									if v232 < 0 and not v204 then
-										v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(v221 + v232, 0, 20), 0);
-										v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v232, 0);
-									end;
-									if not u43[p30] then
-										break;
-									end;
-									if v198.Frame.Bar.Size.Y.Scale == 0 then
-										break;
-									end;
-									if tick() - v231 > 7.5 then
-										break;
-									end;								
-								end;
-							else
-								v14.wait(0.175);
-							end;
-							v234 = true;
-							v205 = v113;
-							v206 = v205;
-							if v206 and v113.Glow then
-								v113.Glow(p30, false);
-							else
-								p32.Glow[p30].Arrow.Visible = false;
-							end;
-							v235 = u46;
-							v207 = v235;
-							if v207 and u46.OpponentHit then
-								u46.OpponentHit(l__Parent__3, p30);
-							end;
-							return;
-						end;
-					elseif not l__LocalPlayer__2.Input.DisableArrowGlow.Value and u30[p32.Name][p30] then
-						if false then
-							u24:Disconnect();
-							u30[p32.Name][p30]:PlayAnimation("Receptor");
-							return;
-						else
-							u30[p32.Name][p30]:PlayAnimation("Glow");
-							v208 = "Frame";
-							v209 = v198;
-							v210 = v208;
-							v211 = v209[v210];
-							v226 = "Bar";
-							v212 = v211;
-							v213 = v226;
-							v214 = v212[v213];
-							v227 = "Size";
-							v215 = v214;
-							v216 = v227;
-							v217 = v215[v216];
-							v228 = "Y";
-							v218 = v217;
-							v219 = v228;
-							v220 = v218[v219];
-							v229 = "Scale";
-							v222 = v220;
-							v223 = v229;
-							v221 = v222[v223];
-							v230 = 0;
-							v224 = v230;
-							v225 = v221;
-							if v224 < v225 then
-								v231 = tick();
-								while true do
-									v14.wait();
-									v232 = v198.Position.Y.Scale;
-									if v90 then
-										v233 = 0.25;
-										if v94 then
-											v233 = 0.24875621890547267;
-										elseif v91 then
-											v233 = 0.24752475247524752;
-										elseif v93 then
-											v233 = 0.23584905660377356;
-										elseif v92 then
-											v233 = 0.2293577981651376;
-										end;
-										v232 = v232 * (0.25 / v233);
-									end;
-									if v232 < 0 and not v204 then
-										v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(v221 + v232, 0, 20), 0);
-										v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v232, 0);
-									end;
-									if not u43[p30] then
-										break;
-									end;
-									if v198.Frame.Bar.Size.Y.Scale == 0 then
-										break;
-									end;
-									if tick() - v231 > 7.5 then
-										break;
-									end;								
-								end;
-							else
-								v14.wait(0.175);
-							end;
-							v234 = true;
-							v205 = v113;
-							v206 = v205;
-							if v206 and v113.Glow then
-								v113.Glow(p30, false);
-							else
-								p32.Glow[p30].Arrow.Visible = false;
-							end;
-							v235 = u46;
-							v207 = v235;
-							if v207 and u46.OpponentHit then
-								u46.OpponentHit(l__Parent__3, p30);
-							end;
-							return;
-						end;
-					else
-						v208 = "Frame";
-						v209 = v198;
-						v210 = v208;
-						v211 = v209[v210];
-						v226 = "Bar";
-						v212 = v211;
-						v213 = v226;
-						v214 = v212[v213];
-						v227 = "Size";
-						v215 = v214;
-						v216 = v227;
-						v217 = v215[v216];
-						v228 = "Y";
-						v218 = v217;
-						v219 = v228;
-						v220 = v218[v219];
-						v229 = "Scale";
-						v222 = v220;
-						v223 = v229;
-						v221 = v222[v223];
-						v230 = 0;
-						v224 = v230;
-						v225 = v221;
-						if v224 < v225 then
-							v231 = tick();
-							while true do
-								v14.wait();
-								v232 = v198.Position.Y.Scale;
-								if v90 then
-									v233 = 0.25;
-									if v94 then
-										v233 = 0.24875621890547267;
-									elseif v91 then
-										v233 = 0.24752475247524752;
-									elseif v93 then
-										v233 = 0.23584905660377356;
-									elseif v92 then
-										v233 = 0.2293577981651376;
-									end;
-									v232 = v232 * (0.25 / v233);
-								end;
-								if v232 < 0 and not v204 then
-									v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(v221 + v232, 0, 20), 0);
-									v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v232, 0);
-								end;
-								if not u43[p30] then
-									break;
-								end;
-								if v198.Frame.Bar.Size.Y.Scale == 0 then
-									break;
-								end;
-								if tick() - v231 > 7.5 then
-									break;
-								end;							
-							end;
-						else
-							v14.wait(0.175);
-						end;
-						v234 = true;
-						v205 = v113;
-						v206 = v205;
-						if v206 and v113.Glow then
-							v113.Glow(p30, false);
-						else
-							p32.Glow[p30].Arrow.Visible = false;
-						end;
-						v235 = u46;
-						v207 = v235;
-						if v207 and u46.OpponentHit then
-							u46.OpponentHit(l__Parent__3, p30);
-						end;
-						return;
-					end;
-				else
-					v205 = v113;
-					v206 = v205;
-					if v206 and v113.Glow then
-						v113.Glow(p30, false);
-					else
-						p32.Glow[p30].Arrow.Visible = false;
-					end;
-					v235 = u46;
-					v207 = v235;
-					if v207 and u46.OpponentHit then
-						u46.OpponentHit(l__Parent__3, p30);
-					end;
-					return;
-				end;
-			end;
-		else
-			return;
-		end;
-	end;
-	u47(p30);
-	if v198 and v198 ~= "ghost" then
-		if v198:FindFirstChild("HitSound") then
-			v14.PlaySound(v198.HitSound.Value, v198.HitSound.parent, 2.25);
-		elseif l__LocalPlayer__2.Input.HitSounds.Value == true then
-			v14.PlaySound(v150);
-		end;
-		local v236 = string.split(v198:GetAttribute("NoteData"), "~")[1] - (v14.tomilseconds(l__Config__4.TimePast.Value) + u28);
-		local v237 = math.abs(v236);
-		local v238 = string.split(v198.Name, "_")[1];
-		if v237 <= v15.Sick then
-			u48(v238);
-		end;
-		if l__LocalPlayer__2.Input.ScoreBop.Value then
-			if l__LocalPlayer__2.Input.VerticalBar.Value then
-				for v239, v240 in pairs(l__Parent__3.SideContainer:GetChildren()) do
-					if v240.ClassName == "TextLabel" then
-						v240.Size = UDim2.new(u27[v240.Name].X.Scale * 1.1, 0, u27[v240.Name].Y.Scale * 1.1, 0);
-						l__TweenService__17:Create(v240, TweenInfo.new(0.3), {
-							Size = u27[v240.Name]
-						}):Play();
-					end;
-				end;
-			else
-				l__Parent__3.LowerContainer.Stats.Size = UDim2.new(u27.Stats.X.Scale * 1.1, 0, u27.Stats.Y.Scale * 1.1, 0);
-				l__TweenService__17:Create(l__Parent__3.LowerContainer.Stats, TweenInfo.new(0.3), {
-					Size = u27.Stats
-				}):Play();
-			end;
-		end;
-		u49(v238);
-		u3 = u3 + 1;
-		v33();
-		if u46 and u46.UpdateStats then
-			u46.UpdateStats(l__Parent__3);
-		end;
-		if u46 and u46.OnHit then
-			u46.OnHit(l__Parent__3, u5, u3, v238, u2, p30);
-		end;
-		if v198.HellNote.Value == false then
-			local v241 = "0";
-		else
-			v241 = "1";
-		end;
-		l__UserInput__50:FireServer(v198, p30 .. "|0|" .. v14.tomilseconds(l__Config__4.TimePast.Value) + u28 .. "|" .. v198.Position.Y.Scale .. "|" .. v198:GetAttribute("NoteData") .. "|" .. v198.Name .. "|" .. v198:GetAttribute("Length") .. "|" .. tostring(v241));
-		table.insert(u12, {
-			ms = v236, 
-			songPos = l__Parent__3.Config.TimePast.Value, 
-			miss = false
-		});
-		if v204 then
-			v198.Frame.Arrow:SetAttribute("hit", true);
-		else
-			v198.Frame.Arrow.Visible = false;
-		end;
-		if not u42[p30] then
-			return;
-		end;
-		v22.Glow[p30].Arrow.ImageTransparency = 1;
-		if v113 and v113.Glow then
-			v113.Glow(p30, true);
-		else
-			v22.Glow[p30].Arrow.Visible = true;
-		end;
-		if v22.Glow[p30].Arrow.ImageTransparency == 1 then
-			if not l__LocalPlayer__2.Input.DisableArrowGlow.Value and not u30[v22.Name][p30] then
-				local u54 = false;
-				local u55 = nil;
-				u55 = l__RunService__19.RenderStepped:Connect(function()
-					if u54 then
-						u55:Disconnect();
-						v22.Glow[p30].Arrow.ImageTransparency = 1;
-						return;
-					end;
-					v22.Glow[p30].Arrow.ImageTransparency = 0.2 - math.cos(tick() * 10 * math.pi) / 6 + v22.Arrows[p30].ImageTransparency / 1.25;
-				end);
-			elseif not l__LocalPlayer__2.Input.DisableArrowGlow.Value and u30[v22.Name][p30] then
-				if false then
-					u24:Disconnect();
-					u30[v22.Name][p30]:PlayAnimation("Receptor");
-					return;
-				end;
-				u30[v22.Name][p30]:PlayAnimation("Glow");
-			end;
-			local l__Scale__242 = v198.Frame.Bar.Size.Y.Scale;
-			if l__Scale__242 > 0 then
-				local v243 = math.abs(v236);
-				while true do
-					task.wait();
-					local v244 = v198.Position.Y.Scale;
-					if v90 then
-						local v245 = 0.25;
-						if v94 then
-							v245 = 0.24875621890547267;
-						elseif v91 then
-							v245 = 0.24752475247524752;
-						elseif v93 then
-							v245 = 0.23584905660377356;
-						elseif v92 then
-							v245 = 0.2293577981651376;
-						end;
-						v244 = v244 * (0.25 / v245);
-					end;
-					if v244 < 0 and v198:FindFirstChild("Frame") and not v204 then
-						v198.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.clamp(l__Scale__242 + v244, 0, 20), 0);
-						v198.Frame.Bar.Position = UDim2.new(0.5, 0, 0.5 - v244, 0);
-					end;
-					if not u42[p30] then
-						break;
-					end;				
-				end;
-				if v198.HellNote.Value == false then
-					local v246 = "0";
-				else
-					v246 = "1";
-				end;
-				l__UserInput__50:FireServer(v198, p30 .. "|1|" .. v14.tomilseconds(l__Config__4.TimePast.Value) + u28 .. "|" .. v198.Position.Y.Scale .. "|" .. v198:GetAttribute("NoteData") .. "|" .. v198.Name .. "|" .. v198:GetAttribute("Length") .. "|" .. tostring(v246));
-				local v247 = 1 - math.clamp(math.abs(v198.Position.Y.Scale) / v198:GetAttribute("Length"), 0, 1);
-				local v248 = v243 + v198:GetAttribute("SustainLength") * v247;
-				if v247 <= v149 / 10 then
-					if v243 <= v15.Marvelous and l__LocalPlayer__2.Input.ShowMarvelous.Value then
-						local v249 = "Marvelous";
-					else
-						v249 = "Sick";
-					end;
-					u51(v249, v236);
-					table.insert(u1, 1, 100);
-					if v243 <= v15.Marvelous and l__LocalPlayer__2.Input.ShowMarvelous.Value then
-						u6 = u6 + 1;
-					else
-						u7 = u7 + 1;
-					end;
-				elseif v247 <= v149 / 6 then
-					u51("Good", v236);
-					table.insert(u1, 1, 90);
-					u8 = u8 + 1;
-					if l__Parent__3:GetAttribute("Perfect") then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-				elseif v247 <= v149 then
-					u51("Bad", v236);
-					table.insert(u1, 1, 60);
-					u10 = u10 + 1;
-					if l__Parent__3:GetAttribute("Perfect") then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-				end;
-				v33();
-				if u46 and u46.UpdateStats then
-					u46.UpdateStats(l__Parent__3);
-				end;
-				if not v204 then
-					v198.Visible = false;
-				end;
-			else
-				if v198.HellNote.Value ~= false then
+}
 
-				end;
-				if v237 <= v15.Marvelous * 1 and l__LocalPlayer__2.Input.ShowMarvelous.Value then
-					u51("Marvelous", v236);
-					table.insert(u1, 1, 100);
-					u6 = u6 + 1;
-				elseif v237 <= v15.Sick * 1 then
-					u51("Sick", v236);
-					table.insert(u1, 1, 100);
-					u7 = u7 + 1;
-				elseif v237 <= v15.Good * 1 then
-					u51("Good", v236);
-					table.insert(u1, 1, 90);
-					u8 = u8 + 1;
-					if l__Parent__3:GetAttribute("Perfect") then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-				elseif v237 <= v15.Ok * 1 then
-					u51("Ok", v236);
-					table.insert(u1, 1, 75);
-					u9 = u9 + 1;
-					if l__Parent__3:GetAttribute("Perfect") then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-				elseif v237 <= v15.Bad * 1 then
-					u51("Bad", v236);
-					table.insert(u1, 1, 60);
-					u10 = u10 + 1;
-					if l__Parent__3:GetAttribute("Perfect") then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-				end;
-				v33();
-				if u46 and u46.UpdateStats then
-					u46.UpdateStats(l__Parent__3);
-				end;
-				while true do
-					v14.wait();
-					if not u42[p30] then
-						break;
-					end;				
-				end;
-				if not v204 then
-					v198.Visible = false;
-				end;
-			end;
-		end;
-		if v113 and v113.Glow then
-			v113.Glow(p30, false);
-		else
-			v22.Glow[p30].Arrow.Visible = false;
-		end;
-	end;
-	if not u42[p30] then
-		return;
-	end;
-	if v198 ~= "ghost" then
-		l__UserInput__50:FireServer("missed", p30 .. "|0");
-		table.insert(u1, 1, 0);
-		u4 = u4 + 1;
-		u3 = 0;
-		v33();
-		if u46 and u46.UpdateStats then
-			u46.UpdateStats(l__Parent__3);
-		end;
-		table.insert(u12, {
-			ms = 0, 
-			songPos = l__Parent__3.Config.TimePast.Value, 
-			miss = true
-		});
-		if u46 and u46.OnMiss then
-			u46.OnMiss(l__Parent__3, u4, u2, p30);
-		end;
-		if l__Parent__3:GetAttribute("SuddenDeath") and l__Config__4.TimePast.Value > 5 then
-			l__LocalPlayer__2.Character.Humanoid.Health = 0;
-		end;
-		local v250 = l__Parent__3.Sounds:GetChildren()[math.random(1, #l__Parent__3.Sounds:GetChildren())]:Clone();
-		v250.Name = "MissSound";
-		v250.Parent = l__Parent__3;
-		v250.Volume = l__LocalPlayer__2.Input.MissVolume.Value and 0.3;
-		if l__LocalPlayer__2.Input.MissSoundValue.Value ~= 0 then
-			v250.SoundId = "rbxassetid://" .. l__LocalPlayer__2.Input.MissSoundValue.Value;
-		end;
-		v250:Play();
-	end;
-	local v251 = v22.Arrows[p30];
-	u42[p30] = true;
-	if u30[v22.Name][p30] then
-		u30[v22.Name][p30]:PlayAnimation("Press");
-	elseif v251:FindFirstChild("Overlay") then
-		v251.Overlay.Visible = true;
-	else
-		v113.Pressed(p30, true, l__Parent__3);
-	end;
-	local v252 = 1;
-	if v93 then
-		v252 = 0.85;
-	end;
-	if v92 then
-		v252 = 0.7;
-	end;
-	if v113 then
-		v252 = v113.CustomArrowSize and 1;
-	end;
-	local v253 = v252 * l__LocalPlayer__2.Input.ArrowSize.Value;
-	l__TweenService__17:Create(v251, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0), {
-		Size = v198 == "ghost" and UDim2.new(v253 / 1.05, 0, v253 / 1.05, 0) or UDim2.new(v253 / 1.25, 0, v253 / 1.25, 0)
-	}):Play();
-	while true do
-		task.wait();
-		if not u42[p30] then
-			break;
-		end;	
-	end;
-	if u30[v22.Name][p30] then
-		u30[v22.Name][p30]:PlayAnimation("Receptor");
-	elseif v251:FindFirstChild("Overlay") then
-		v251.Overlay.Visible = false;
-	else
-		v113.Pressed(p30, false, l__Parent__3);
-	end;
-	l__TweenService__17:Create(v251, TweenInfo.new(0.05, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, 0, false, 0), {
-		Size = UDim2.new(v253, 0, v253, 0)
-	}):Play();
-end;
-local v254 = nil;
-local l__Value__255 = _G.LastInput.Value;
-if l__Value__255 == Enum.UserInputType.Touch then
-	script.Device.Value = "Mobile";
-	v14.wait(0.2);
-	local v256, v257, v258 = ipairs(l__Parent__3.MobileButtons.Container:GetChildren());
-	while true do
-		v256(v257, v258);
-		if not v256 then
-			break;
-		end;
-		v258 = v256;
-		if v257:IsA("ImageButton") then
-			v257.MouseButton1Down:Connect(function()
-				v195({
-					UserInputState = Enum.UserInputState.Begin
-				}, v257.Name);
-			end);
-			v257.MouseButton1Up:Connect(function()
-				v195({
-					UserInputState = Enum.UserInputState.End
-				}, v257.Name);
-			end);
-		end;	
-	end;
-	script.Parent.MobileButtons.Visible = true;
-elseif l__Value__255 == Enum.UserInputType.Keyboard then
-	script.Device.Value = "Computer";
-	local function v259(p34, p35)
-		if p35 then
-			return;
-		end;
-		local l__Keybinds__260 = l__LocalPlayer__2.Input.Keybinds;
-		if v113 and v113.getDirection then
-			local v261 = v113.getDirection(p34.KeyCode, l__Keybinds__260);
-			if v261 then
-				v195(p34, v261);
-				return;
-			end;
-		else
-			if v90 then
-				local v262, v263, v264 = ipairs(l__Keybinds__260:GetChildren());
-				while true do
-					v262(v263, v264);
-					if not v262 then
-						break;
-					end;
-					v264 = v262;
-					if v263:GetAttribute("ExtraKey") and p34.KeyCode.Name == v263.Value then
-						v195(p34, v139[v263.Name]);
-						return;
-					end;				
-				end;
-				return;
-			end;
-			local v265, v266, v267 = ipairs(l__Keybinds__260:GetChildren());
-			while true do
-				v265(v266, v267);
-				if not v265 then
-					break;
-				end;
-				v267 = v265;
-				if not v266:GetAttribute("ExtraKey") then
-					if p34.KeyCode.Name == v266.Value then
-						local l__Name__268 = v266.Name;
-						if v266:GetAttribute("SecondaryKey") then
-							local v269 = v266:GetAttribute("Key");
-						end;
-						v195(p34, v266:GetAttribute("SecondaryKey") and v266:GetAttribute("Key") or v266.Name);
-						return;
-					end;
-					if v266:GetAttribute("SecondaryKey") and p34.KeyCode.Name == v266:GetAttribute("Key") then
-						l__Name__268 = v266.Name;
-						if v266:GetAttribute("SecondaryKey") then
-							v269 = v266:GetAttribute("Key");
-						end;
-						v195(p34, v266:GetAttribute("SecondaryKey") and v266:GetAttribute("Key") or v266.Name);
-						return;
-					end;
-				end;			
-			end;
-		end;
-	end;
-	v254 = l__UserInputService__18.InputBegan:connect(v259);
-	local v270 = l__UserInputService__18.InputEnded:connect(v259);
-elseif l__Value__255 == Enum.UserInputType.Gamepad1 then
-	script.Device.Value = "Controller";
-	local function v271(p36, p37)
-		local l__XBOXKeybinds__272 = l__LocalPlayer__2.Input.XBOXKeybinds;
-		if v113 and v113.getDirection then
-			local v273 = v113.getDirection(p36.KeyCode, l__XBOXKeybinds__272);
-			if v273 then
-				v195(p36, v273);
-				return;
-			end;
-		elseif v90 then
-			local v274, v275, v276 = ipairs(l__XBOXKeybinds__272:GetChildren());
-			while true do
-				v274(v275, v276);
-				if not v274 then
-					break;
-				end;
-				v276 = v274;
-				if v275:GetAttribute("ExtraKey") and p36.KeyCode.Name == v275.Value then
-					v195(p36, v139[v275.Name:sub(12, -1)]);
-					return;
-				end;			
-			end;
-			return;
-		else
-			local v277, v278, v279 = ipairs(l__XBOXKeybinds__272:GetChildren());
-			while true do
-				v277(v278, v279);
-				if not v277 then
-					break;
-				end;
-				v279 = v277;
-				if not v278:GetAttribute("ExtraKey") and p36.KeyCode.Name == v278.Value then
-					v195(p36, v278.Name:sub(12, -1));
-					return;
-				end;			
-			end;
-		end;
-	end;
-	v254 = l__UserInputService__18.InputBegan:connect(v271);
-	local v280 = l__UserInputService__18.InputEnded:connect(v271);
-end;
-if l__Parent__3.PlayerSide.Value == "L" then
-	local v281 = l__Value__6.Events.Player2Hit.OnClientEvent:Connect(function(p38)
-		p38 = string.split(p38, "|");
-		v195({
-			UserInputState = p38[2] == "0" and Enum.UserInputState.Begin or Enum.UserInputState.End
-		}, p38[1], string.gsub(p38[3], "~", "|") .. "~" .. p38[4], true, (tonumber(p38[5])));
-	end);
-else
-	v281 = l__Value__6.Events.Player1Hit.OnClientEvent:Connect(function(p39)
-		p39 = string.split(p39, "|");
-		v195({
-			UserInputState = p39[2] == "0" and Enum.UserInputState.Begin or Enum.UserInputState.End
-		}, p39[1], string.gsub(p39[3], "~", "|") .. "~" .. p39[4], true, (tonumber(p39[5])));
-	end);
-end;
-l__Parent__3.Side.Changed:Connect(function()
-	if u46 and u46.OverrideCamera then
-		return;
-	end;
-	local l__Value__282 = l__Parent__3.Side.Value;
-	local v283 = workspace.ClientBG:FindFirstChildOfClass("Model");
-	l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.CameraSpeed.Value, v9, Enum.EasingDirection.Out, 0, false, 0), {
-		CFrame = (v283 and v283:FindFirstChild("cameraPoints") and v283.cameraPoints:FindFirstChild(l__Value__282) or (l__Value__6.CameraPoints:FindFirstChild(l__Value__282) or l__Value__6.CameraPoints.C)).CFrame
-	}):Play();
-end);
-if l__LocalPlayer__2.Input.HideMap.Value and not v89:FindFirstChild("ForceBackgrounds") then
-	local v284 = Instance.new("Frame");
-	v284.Parent = l__Parent__3;
-	v284.Position = UDim2.new(0, 0, 0, 0);
-	v284.BackgroundColor3 = Color3.fromRGB(0, 0, 0);
-	v284.Size = UDim2.new(1, 0, 1, 0);
-	v284.BackgroundTransparency = 1;
-	l__LocalPlayer__2.Character:WaitForChild("Humanoid").Died:Connect(function()
-		game.ReplicatedStorage.Events.UnloadBackground:Fire();
-	end);
-	l__TweenService__17:Create(v284, TweenInfo.new(0.4), {
-		BackgroundTransparency = 0
-	}):Play();
-	task.wait(0.4);
-	task.spawn(function()
-		l__TweenService__17:Create(v284, TweenInfo.new(0.4), {
-			BackgroundTransparency = 1
-		}):Play();
-		task.wait(0.4);
-		v284:Destroy();
-	end);
-	for v285, v286 in pairs(workspace:GetDescendants()) do
-		if not v286:IsDescendantOf(l__Value__6) and not v286:IsDescendantOf(workspace.Misc.ActualShop) and (not l__Value__6.Seat.Occupant or not v286:IsDescendantOf(l__Value__6.Seat.Occupant.Parent)) and (not l__Value__6.Config.Player1.Value or not v286:IsDescendantOf(l__Value__6.Config.Player1.Value.Character)) and (not l__Value__6.Config.Player2.Value or not v286:IsDescendantOf(l__Value__6.Config.Player2.Value.Character)) then
-			if not (not v286:IsA("BasePart")) or not (not v286:IsA("Decal")) or v286:IsA("Texture") then
-				v286.Transparency = 1;
-			elseif v286:IsA("GuiObject") then
-				v286.Visible = false;
-			elseif v286:IsA("Beam") or v286:IsA("ParticleEmitter") then
-				v286.Enabled = false;
-			end;
-		end;
-	end;
-	local v287 = game.ReplicatedStorage.Misc.DarkVoid:Clone();
-	v287.Parent = workspace.ClientBG;
-	v287:SetPrimaryPartCFrame(l__Value__6.BackgroundPart.CFrame);
-	for v288, v289 in pairs(game.Lighting:GetChildren()) do
-		v289:Destroy();
-	end;
-	for v290, v291 in pairs(v287.Lighting:GetChildren()) do
-		v291:Clone().Parent = game.Lighting;
-	end;
-	l__Value__6.Misc.Stereo.Speakers.Transparency = 1;
-	for v292, v293 in pairs(l__Value__6.Fireworks:GetChildren()) do
-		v293.Transparency = 1;
-	end;
-end;
-local u56 = false;
-l__Events__5.ChangeBackground.Event:Connect(function(p40, p41, p42)
-	if (not l__LocalPlayer__2.Input.Backgrounds.Value or l__LocalPlayer__2.Input.HideMap.Value) and not v89:FindFirstChild("ForceBackgrounds") then
-		return;
-	end;
-	local l__Backgrounds__294 = game.ReplicatedStorage.Backgrounds;
-	local v295 = l__Backgrounds__294:FindFirstChild(p41) and l__Backgrounds__294[p41]:Clone() or game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Load", p40, p41, v89);
-	if not l__Backgrounds__294:FindFirstChild(p41) then
-		v295:Clone().Parent = l__Backgrounds__294;
-	end;
-	for v296, v297 in pairs(workspace.ClientBG:GetChildren()) do
-		v297:Destroy();
-	end;
-	if l__Value__6.Config.CleaningUp.Value then
-		return;
-	end;
-	if not u56 then
-		u56 = true;
-		local v298 = Instance.new("Frame");
-		v298.Parent = l__Parent__3;
-		v298.Position = UDim2.new(0, 0, 0, 0);
-		v298.BackgroundColor3 = Color3.fromRGB(0, 0, 0);
-		v298.Size = UDim2.new(1, 0, 1, 0);
-		v298.BackgroundTransparency = 1;
-		l__TweenService__17:Create(v298, TweenInfo.new(0.4), {
-			BackgroundTransparency = 0
-		}):Play();
-		task.wait(0.4);
-		task.spawn(function()
-			l__TweenService__17:Create(v298, TweenInfo.new(0.4), {
-				BackgroundTransparency = 1
-			}):Play();
-			task.wait(0.4);
-			v298:Destroy();
-		end);
-		for v299, v300 in pairs(workspace:GetDescendants()) do
-			if not v300:IsDescendantOf(l__Value__6) and not v300:IsDescendantOf(workspace.Misc.ActualShop) and (not l__Value__6.Seat.Occupant or not v300:IsDescendantOf(l__Value__6.Seat.Occupant.Parent)) and (not l__Value__6.Config.Player1.Value or not v300:IsDescendantOf(l__Value__6.Config.Player1.Value.Character)) and (not l__Value__6.Config.Player2.Value or not v300:IsDescendantOf(l__Value__6.Config.Player2.Value.Character)) then
-				if not (not v300:IsA("BasePart")) or not (not v300:IsA("Decal")) or v300:IsA("Texture") then
-					v300.Transparency = 1;
-				elseif v300:IsA("GuiObject") then
-					v300.Visible = false;
-				elseif v300:IsA("Beam") or v300:IsA("ParticleEmitter") then
-					v300.Enabled = false;
-				end;
-			end;
-		end;
-	end;
-	if p42 then
-		local v301 = 0;
-	else
-		v301 = 1;
-	end;
-	l__Value__6.Misc.Stereo.Speakers.Transparency = v301;
-	for v302, v303 in pairs(l__Value__6.Fireworks:GetChildren()) do
-		if p42 then
-			local v304 = 0;
-		else
-			v304 = 1;
-		end;
-		v303.Transparency = v304;
-	end;
-	v295.Parent = workspace.ClientBG;
-	v295:SetPrimaryPartCFrame(l__Value__6.BackgroundPart.CFrame);
-	if v295:FindFirstChild("Lighting") then
-		for v305, v306 in pairs(game.Lighting:GetChildren()) do
-			v306:Destroy();
-		end;
-		for v307, v308 in pairs(v295.Lighting:GetChildren()) do
-			if not (not v308:IsA("StringValue")) or not (not v308:IsA("Color3Value")) or v308:IsA("NumberValue") then
-				local v309, v310 = pcall(function()
-					game.Lighting[v308.Name] = v308.Value;
-				end);
-				if v310 then
-					warn(v310);
-				end;
-			else
-				v308:Clone().Parent = game.Lighting;
-			end;
-		end;
-	end;
-	if v295:FindFirstChild("ModuleScript") then
-		task.spawn(require(v295.ModuleScript).BGFunction);
-	end;
-	if v295:FindFirstChild("cameraPoints") then
-		l__CameraPoints__8.L.CFrame = v295.cameraPoints.L.CFrame;
-		l__CameraPoints__8.C.CFrame = v295.cameraPoints.C.CFrame;
-		l__CameraPoints__8.R.CFrame = v295.cameraPoints.R.CFrame;
-		if u46 and u46.OverrideCamera then
-			return;
-		end;
-		l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(l__LocalPlayer__2.Input.CameraSpeed.Value, v9, Enum.EasingDirection.Out), {
-			CFrame = v295.cameraPoints.L.CFrame
-		}):Play();
-	end;
-	if v295:FindFirstChild("playerPoints") then
-		local l__playerPoints__57 = v295.playerPoints;
-		local l__Value__311 = l__Value__6.Config.Player1.Value;
-		local l__Value__312 = l__Value__6.Config.Player2.Value;
-		local l__NPC__313 = l__Value__6:FindFirstChild("NPC");
-		local function u58(p43, p44)
-			if not p43 then
-				return;
-			end;
-			p44 = l__playerPoints__57:FindFirstChild("PlayerPoint" .. p44);
-			if not p44 then
-				return;
-			end;
-			local l__Character__314 = p43.Character;
-			if l__Character__314 then
-				if l__Character__314:FindFirstChild("char2") then
-					local l__Dummy__315 = l__Character__314.char2:WaitForChild("Dummy");
-					if not l__Dummy__315.PrimaryPart then
-						while true do
-							task.wait();
-							if l__Dummy__315.PrimaryPart then
-								break;
-							end;						
-						end;
-					end;
-					local l__PrimaryPart__316 = l__Dummy__315.PrimaryPart;
-					if not l__PrimaryPart__316:GetAttribute("YOffset") then
-						l__PrimaryPart__316:SetAttribute("YOffset", l__PrimaryPart__316.Position.Y - l__Character__314.PrimaryPart.Position.Y);
-					end;
-					if not l__PrimaryPart__316:GetAttribute("OrientationOffset") then
-						l__PrimaryPart__316:SetAttribute("OrientationOffset", l__PrimaryPart__316.Orientation.Y - l__Character__314.PrimaryPart.Orientation.Y);
-					end;
-					l__PrimaryPart__316.CFrame = p44.CFrame + Vector3.new(0, l__PrimaryPart__316:GetAttribute("YOffset"), 0);
-					l__PrimaryPart__316.CFrame = l__PrimaryPart__316.CFrame * CFrame.Angles(0, math.rad((l__PrimaryPart__316:GetAttribute("OrientationOffset"))), 0);
-				end;
-				if l__Character__314:FindFirstChild("customrig") then
-					local l__rig__317 = l__Character__314.customrig:WaitForChild("rig");
-					if not l__rig__317.PrimaryPart then
-						while true do
-							task.wait();
-							if l__rig__317.PrimaryPart then
-								break;
-							end;						
-						end;
-					end;
-					local l__PrimaryPart__318 = l__rig__317.PrimaryPart;
-					if not l__PrimaryPart__318:GetAttribute("YOffset") then
-						l__PrimaryPart__318:SetAttribute("YOffset", l__PrimaryPart__318.Position.Y - l__Character__314.PrimaryPart.Position.Y);
-					end;
-					if not l__PrimaryPart__318:GetAttribute("OrientationOffset") then
-						l__PrimaryPart__318:SetAttribute("OrientationOffset", l__PrimaryPart__318.Orientation.Y - l__Character__314.PrimaryPart.Orientation.Y);
-					end;
-					l__PrimaryPart__318.CFrame = p44.CFrame + Vector3.new(0, l__PrimaryPart__318:GetAttribute("YOffset"), 0);
-					l__PrimaryPart__318.CFrame = l__PrimaryPart__318.CFrame * CFrame.Angles(0, math.rad((l__PrimaryPart__318:GetAttribute("OrientationOffset"))), 0);
-				end;
-				if l__Character__314 then
-					l__Character__314.PrimaryPart.CFrame = p44.CFrame;
-				end;
-			end;
-		end;
-		task.spawn(function()
-			if u46 and u46.STOP == true then
-				return;
-			end;
-			while l__Parent__3.Parent and v295.Parent do
-				local l__Value__319 = l__Value__6.Config.Player1.Value;
-				if l__Value__319 then
-					local v320 = "B";
-				else
-					v320 = "A";
-				end;
-				u58(l__Value__6:FindFirstChild("NPC"), v320);
-				u58(l__Value__319, "A");
-				u58(l__Value__6.Config.Player2.Value, "B");
-				task.wait(1);			
-			end;
-		end);
-	end;
-end);
-if v89:FindFirstChild("Background") and l__Parent__3:FindFirstAncestorOfClass("Player") then
-	l__Parent__3.Events.ChangeBackground:Fire(v89.stageName.Value, v89.Background.Value, v89.Background.Stereo.Value);
-end;
-if l__Value__6.Config.SinglePlayerEnabled.Value and not v89:FindFirstChild("NoNPC") then
-	local v321 = require(l__Parent__3.Modules.Bot);
-	v321.Start(u25.speed, v22);
-	v321.Act(l__Parent__3.PlayerSide.Value, l__bpm__99);
-end;
-local u59 = {
-	Left = { Vector2.new(315, 116), Vector2.new(77, 77.8) }, 
-	Down = { Vector2.new(925, 77), Vector2.new(78.5, 77) }, 
-	Up = { Vector2.new(925, 0), Vector2.new(78.5, 77) }, 
-	Right = { Vector2.new(238, 116), Vector2.new(77, 78.5) }
-};
-local u60 = {
-	Left = {
-		Offset = Vector2.new(0, 256), 
-		Pos = 0.125
-	}, 
-	Down = {
-		Offset = Vector2.new(256, 256), 
-		Pos = 0.375
-	}, 
-	Up = {
-		Offset = Vector2.new(512, 256), 
-		Pos = 0.625
-	}, 
-	Right = {
-		Offset = Vector2.new(768, 256), 
-		Pos = 0.875
-	}
-};
-if v89:FindFirstChild("MineNotes") then
-	local v322 = require(v89.MineNotes:FindFirstChildOfClass("ModuleScript"));
-	local v323 = Instance.new("ImageLabel");
-	v323.Image = v322.Image or "rbxassetid://9873431724";
-	v323.Size = UDim2.new(0, 0, 0, 0);
-	v323.Parent = l__Parent__3;
-	if v322.update then
-		l__RunService__19.RenderStepped:Connect(function(p45)
-			v322.update(p45, l__Parent__3, v323);
-		end);
-	end;
-	game:GetService("ContentProvider"):PreloadAsync({ v322.Image or "rbxassetid://9873431724" });
-end;
-if v89:FindFirstChild("GimmickNotes") then
-	local v324 = require(v89.GimmickNotes:FindFirstChildOfClass("ModuleScript"));
-	local v325 = Instance.new("ImageLabel");
-	v325.Image = v324.Image or "rbxassetid://9873431724";
-	v325.Size = UDim2.new(0, 0, 0, 0);
-	v325.Parent = l__Parent__3;
-	if v324.update then
-		l__RunService__19.RenderStepped:Connect(function(p46)
-			v324.update(p46, l__Parent__3, v325);
-		end);
-	end;
-	game:GetService("ContentProvider"):PreloadAsync({ v324.Image or "rbxassetid://9873431724" });
-end;
-if v89:FindFirstChild("MultipleGimmickNotes") then
-	local v326, v327, v328 = pairs(v89.MultipleGimmickNotes:GetChildren());
-	while true do
-		local v329, v330 = v326(v327, v328);
-		if not v329 then
-			break;
-		end;
-		if not v330:IsA("Frame") then
-			return;
-		end;
-		local v331 = require(v330:FindFirstChildOfClass("ModuleScript"));
-		local v332 = Instance.new("ImageLabel");
-		v332.Image = v331.Image or "rbxassetid://9873431724";
-		v332.Size = UDim2.new(0, 0, 0, 0);
-		v332.Parent = l__Parent__3;
-		if v331.update then
-			l__RunService__19.RenderStepped:Connect(function(p47)
-				v331.update(p47, l__Parent__3, v332);
-			end);
-		end;
-		for v333, v334 in pairs(u60) do
-			local v335 = v330:Clone();
-			v335.Name = ("%s_%s"):format(v333, v330.Name);
-			v335.Frame.Position = UDim2.fromScale(v334.Pos, 0);
-			v335.Frame.AnchorPoint = Vector2.new(0.5, 0);
-			v335.Parent = l__Game__7.Templates;
-		end;
-		game:GetService("ContentProvider"):PreloadAsync({ v331.Image or "rbxassetid://9873431724" });	
-	end;
-end;
-(function(p48, p49)
-	if v22.Name == "L" then
-		local v336 = "R";
-	else
-		v336 = "L";
-	end;
-	local v337 = l__Game__7:FindFirstChild(v336);
-	if v89:FindFirstChild("UIStyle") then
-		ChangeUI(v89:FindFirstChild("UIStyle").Value);
-	else
-		ChangeUI(nil);
-	end;
-	updateUI(p48);
-	l__Parent__3.Background.BackgroundTransparency = l__LocalPlayer__2.Input.BackgroundTrans.Value;
-	l__Game__7.L.Underlay.BackgroundTransparency = l__LocalPlayer__2.Input.ChartTransparency.Value;
-	l__Game__7.R.Underlay.BackgroundTransparency = l__LocalPlayer__2.Input.ChartTransparency.Value;
-	l__Game__7.L.Underlay.UIGradient.Enabled = l__LocalPlayer__2.Input.LaneFadeout.Value;
-	l__Game__7.R.Underlay.UIGradient.Enabled = l__LocalPlayer__2.Input.LaneFadeout.Value;
-	v112.settingsCheck(v90, v89:FindFirstChild("NoSettings"));
-	u28 = v89.Offset.Value + (l__LocalPlayer__2.Input.Offset.Value and 0);
-	if not v90 then
-		local v338, v339, v340 = ipairs(v22.Arrows:GetChildren());
-		while true do
-			v338(v339, v340);
-			if not v338 then
-				break;
-			end;
-			v340 = v338;
-			if v339:IsA("ImageLabel") then
-				v339.Image = l__Value__29;
-				v339.Overlay.Image = l__Value__29;
-			end;		
-		end;
-		local v341, v342, v343 = ipairs(v22.Glow:GetChildren());
-		while true do
-			v341(v342, v343);
-			if not v341 then
-				break;
-			end;
-			v343 = v341;
-			v342.Arrow.Image = l__Value__29;		
-		end;
-		if v63:FindFirstChild("XML") then
-			local v344 = require(v63.XML);
-			if v63:FindFirstChild("Animated") and v63:FindFirstChild("Animated").Value == true then
-				local v345 = require(v63.Config);
-				local v346, v347, v348 = ipairs(v22.Arrows:GetChildren());
-				while true do
-					v346(v347, v348);
-					if not v346 then
-						break;
-					end;
-					v348 = v346;
-					if v347:IsA("ImageLabel") then
-						if v347.Overlay then
-							v347.Overlay.Visible = false;
-						end;
-						local v349 = v21.new(v347, true, 1, true, v345.noteScale);
-						v349.Animations = {};
-						v349.CurrAnimation = nil;
-						v349.AnimData.Looped = false;
-						if type(v345.receptor) == "string" then
-							v349:AddSparrowXML(v63.XML, "Receptor", v345.receptor, 24, true).ImageId = l__Value__29;
-						else
-							v349:AddSparrowXML(v63.XML, "Receptor", v345.receptor[v347.Name], 24, true).ImageId = l__Value__29;
-						end;
-						if v345.glow ~= nil then
-							if type(v345.glow) == "string" then
-								v349:AddSparrowXML(v63.XML, "Glow", v345.glow, 24, true).ImageId = l__Value__29;
-							else
-								v349:AddSparrowXML(v63.XML, "Glow", v345.glow[v347.Name], 24, true).ImageId = l__Value__29;
-							end;
-						end;
-						if v345.press ~= nil then
-							if type(v345.press) == "string" then
-								v349:AddSparrowXML(v63.XML, "Press", v345.press, 24, true).ImageId = l__Value__29;
-							else
-								v349:AddSparrowXML(v63.XML, "Press", v345.press[v347.Name], 24, true).ImageId = l__Value__29;
-							end;
-						end;
-						v349:PlayAnimation("Receptor");
-						u30[v22.Name][v347.Name] = v349;
-					end;				
-				end;
-				local v350, v351, v352 = ipairs(v22.Glow:GetChildren());
-				while true do
-					v350(v351, v352);
-					if not v350 then
-						break;
-					end;
-					v352 = v350;
-					v351.Arrow.Visible = false;				
-				end;
-			else
-				v344.XML(v22);
-			end;
-		end;
-		if v115 then
-			local v353, v354, v355 = ipairs(v337.Arrows:GetChildren());
-			while true do
-				v353(v354, v355);
-				if not v353 then
-					break;
-				end;
-				v355 = v353;
-				if v354:IsA("ImageLabel") then
-					v354.Image = l__Value__31;
-					v354.Overlay.Image = l__Value__31;
-				end;			
-			end;
-			local v356, v357, v358 = ipairs(v337.Glow:GetChildren());
-			while true do
-				v356(v357, v358);
-				if not v356 then
-					break;
-				end;
-				v358 = v356;
-				v357.Arrow.Image = l__Value__31;			
-			end;
-			if v116:FindFirstChild("XML") then
-				if v116:FindFirstChild("Animated") and v116:FindFirstChild("Animated").Value == true then
-					local v359 = require(v116.Config);
-					local v360, v361, v362 = ipairs(v337.Arrows:GetChildren());
-					while true do
-						v360(v361, v362);
-						if not v360 then
-							break;
-						end;
-						v362 = v360;
-						if v361:IsA("ImageLabel") then
-							if v361.Overlay then
-								v361.Overlay.Visible = false;
-							end;
-							local v363 = v21.new(v361, true, 1, true, v359.noteScale);
-							v363.Animations = {};
-							v363.CurrAnimation = nil;
-							v363.AnimData.Looped = false;
-							if type(v359.receptor) == "string" then
-								v363:AddSparrowXML(v116.XML, "Receptor", v359.receptor, 24, true).ImageId = l__Value__31;
-							else
-								v363:AddSparrowXML(v116.XML, "Receptor", v359.receptor[v361.Name], 24, true).ImageId = l__Value__31;
-							end;
-							if v359.glow ~= nil then
-								if type(v359.glow) == "string" then
-									v363:AddSparrowXML(v116.XML, "Glow", v359.glow, 24, true).ImageId = l__Value__31;
-								else
-									v363:AddSparrowXML(v116.XML, "Glow", v359.glow[v361.Name], 24, true).ImageId = l__Value__31;
-								end;
-							end;
-							if v359.press ~= nil then
-								if type(v359.press) == "string" then
-									v363:AddSparrowXML(v116.XML, "Press", v359.press, 24, true).ImageId = l__Value__31;
-								else
-									v363:AddSparrowXML(v116.XML, "Press", v359.press[v361.Name], 24, true).ImageId = l__Value__31;
-								end;
-							end;
-							v363:PlayAnimation("Receptor");
-							u30[v337.Name][v361.Name] = v363;
-						end;					
-					end;
-					local v364, v365, v366 = ipairs(v337.Glow:GetChildren());
-					while true do
-						v364(v365, v366);
-						if not v364 then
-							break;
-						end;
-						v366 = v364;
-						v365.Arrow.Visible = false;					
-					end;
-					return;
-				else
-					require(v116.XML).XML(v337);
-					return;
-				end;
-			end;
-		elseif l__Value__32 ~= "Default" then
-			local v367, v368, v369 = ipairs(v337.Arrows:GetChildren());
-			while true do
-				v367(v368, v369);
-				if not v367 then
-					break;
-				end;
-				v369 = v367;
-				if v368:IsA("ImageLabel") then
-					v368.Image = l__Value__32;
-					v368.Overlay.Image = l__Value__32;
-				end;			
-			end;
-			local v370, v371, v372 = ipairs(v337.Glow:GetChildren());
-			while true do
-				v370(v371, v372);
-				if not v370 then
-					break;
-				end;
-				v372 = v370;
-				v371.Arrow.Image = l__Value__32;			
-			end;
-			if v64:FindFirstChild("XML") then
-				require(v64.XML).XML(v337);
-			end;
-		end;
-	end;
-end)();
-l__Events__5.Modifiers.OnClientEvent:Connect(function(p50)
-	require(game.ReplicatedStorage.Modules.Modifiers[p50]).Modifier(l__LocalPlayer__2, l__Parent__3, u28, u25);
-end);
-local v373 = l__Parent__3.LowerContainer.Bar.Player2;
-local v374 = l__Parent__3.LowerContainer.Bar.Player1;
-local v375 = l__LocalPlayer__2.Input.IconBop.Value;
-if not game.ReplicatedStorage.IconBop:FindFirstChild(v375) then
-	v375 = "Default";
-end;
-local v376 = require(game.ReplicatedStorage.IconBop[v375]);
-if v376.Stretch == true then
-	v374.Sprite.UIAspectRatioConstraint:Destroy();
-	v374.Sprite.ScaleType = Enum.ScaleType.Stretch;
-	v373.Sprite.UIAspectRatioConstraint:Destroy();
-	v373.Sprite.ScaleType = Enum.ScaleType.Stretch;
-	v374 = v374.Sprite;
-	v373 = v373.Sprite;
-end;
-local function u61(p51)
-	return string.format("%d:%02d", math.floor(p51 / 60), p51 % 60);
-end;
-local u62 = 0;
-local u63 = 1;
-local u64 = l__Value__6.Misc.Stereo.AnimationController:LoadAnimation(l__Value__6.Misc.Stereo.Anim);
-local u65 = v98;
-local u66 = l__bpm__99;
-local u67 = v98 / 4;
-local u68 = 1;
-local v377 = l__RunService__19.RenderStepped:Connect(function(p52)
-	local v378 = u16 - l__Config__4.TimePast.Value;
-	if u14.overrideStats and u14.overrideStats.Credits then
-		local v379 = nil;
-		v379 = string.gsub(string.gsub(string.gsub(string.gsub(string.gsub(u14.overrideStats.Credits, "{song}", v101), "{rate}", u17), "{credits}", l__Value__100), "{difficulty}", l__Name__102), "{capdifficulty}", l__Name__102:upper());
-		if u14.overrideStats.Timer then
-			local v380 = string.gsub(v379, "{timer}", (string.gsub(u14.overrideStats.Timer, "{timer}", u61(math.ceil(v378)))));
-		else
-			v380 = string.gsub(v379, "{timer}", u61(math.ceil(v378)));
-		end;
-		l__Parent__3.LowerContainer.Credit.Text = v380;
-	elseif u14.overrideStats and u14.overrideStats.Timer then
-		l__Parent__3.LowerContainer.Credit.Text = v101 .. " (" .. l__Name__102 .. ")" .. " (" .. u17 .. "x)" .. "\n" .. l__Value__100 .. "\n" .. string.gsub(u14.overrideStats.Timer, "{timer}", u61(math.ceil(v378)));
-	else
-		local v381 = math.ceil(v378);
-		l__Parent__3.LowerContainer.Credit.Text = v101 .. " (" .. l__Name__102 .. ")" .. " (" .. u17 .. "x)" .. "\n" .. l__Value__100 .. "\n" .. string.format("%d:%02d", math.floor(v381 / 60), v381 % 60);
-	end;
-	if l__LocalPlayer__2.Input.ShowDebug.Value then
-		if game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 then
-			local v382 = " GB";
-		else
-			v382 = " MB";
-		end;
-		l__Parent__3.Stats.Label.Text = "FPS: " .. tostring(math.floor(1 / p52 * 1 + 0.5) / 1) .. "\nMemory: " .. (tostring(game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 and math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1 / 1000 or math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb() * 1 + 0.5) / 1) .. v382) .. "\nBeat: " .. v13.Beat .. "\nStep: " .. v13.Step .. "\nBPM: " .. v13.BPM;
-	end;
-	if v13.curSection ~= u62 then
-		u62 = v13.curSection;
-		if v13.sectionMustHit then
-			local v383 = "R";
-		else
-			v383 = "L";
-		end;
-		l__Parent__3.Side.Value = v383;
-	end;
-	if v13.Beat ~= u63 then
-		u63 = v13.Beat;
-		u64:Play();
-		if not (not u46) and not u46.OverrideIcons or not u46 then
-			v376.Bop(v374, v373, v13.Beat, u65);
-			v376.End(v374, v373, v13.Beat, u65);
-		end;
-		if (u63 - 1) % 4 == 0 and l__LocalPlayer__2.Input.FOV.Value and l__Parent__3.Config.DoFOVBeat.Value then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0), {
-				FieldOfView = 68
-			}):Play();
-			l__TweenService__17:Create(l__Game__7.UIScale, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0), {
-				Scale = 1.025
-			}):Play();
-		end;
-		task.wait(0.05);
-		if (u63 - 1) % 4 == 0 and l__LocalPlayer__2.Input.FOV.Value and l__Parent__3.Config.DoFOVBeat.Value then
-			l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, 0, false, 0), {
-				FieldOfView = 70
-			}):Play();
-			l__TweenService__17:Create(l__Game__7.UIScale, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, 0, false, 0), {
-				Scale = 1
-			}):Play();
-		end;
-	end;
-	local v384 = workspace.CurrentCamera.ViewportSize.X / 1280 * l__LocalPlayer__2.Input.RatingSize.Value;
-	for v385 = #u38, 1, -1 do
-		local v386 = u38[v385];
-		v386.ZIndex = -2 - (#u38 - v385);
-		if v386:GetAttribute("Count") then
-			local v387 = v384 * 0.625;
-			v386.Position = UDim2.new(0.5, (-(40 * v386:GetAttribute("MaxCount")) + 40 * v386:GetAttribute("Count")) * v387, 0.5, 80 * v387);
-		end;
-		if v386.Parent then
-			v16:UpdateMotion(v386, p52);
-		else
-			table.remove(u38, v385);
-		end;
-	end;
-	if v13.BPM ~= u66 then
-		local l__BPM__388 = v13.BPM;
-		u65 = 60 / (l__BPM__388 and 120);
-		u66 = l__BPM__388;
-		u67 = u65 / 4;
-	end;
-	if u68 ~= v13.Step then
-		u68 = v13.Step;
-	end;
-	local l__Value__389 = l__Parent__3.Stage.Value;
-	local l__LowerContainer__390 = l__Parent__3.LowerContainer;
-	l__LowerContainer__390.PointsA.Text = "" .. math.floor(l__Value__389.Config.P1Points.Value / 100 + 0.5) * 100;
-	l__LowerContainer__390.PointsB.Text = "" .. math.floor(l__Value__389.Config.P2Points.Value / 100 + 0.5) * 100;
-	updateData();
-	if not (not u46) and not u46.OverrideHealthbar or not u46 then
-		if u14 ~= nil and u14.CustomUpdate ~= nil then
-			u14.CustomUpdate(l__LowerContainer__390.Bar, l__Parent__3.Health.Value, l__Parent__3.MaxHealth.Value, l__LocalPlayer__2.Input.Downscroll.Value);
-		else
-			l__LowerContainer__390.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "L" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
-			if u14 ~= nil and u14.ReverseHealth == true then
-				l__LowerContainer__390.Bar.Background.Fill.Size = UDim2.new(l__Parent__3.PlayerSide.Value == "R" and math.clamp(l__Parent__3.Health.Value / 100, 0, 1) or math.clamp(1 - l__Parent__3.Health.Value / 100, 0, 1), 0, 1, 0);
-			end;
-		end;
-	end;
-	if u46 and u46.OverrideIcons then
-		return;
-	end;
-	if u14 and u14.OverrideIcons then
-		return;
-	end;
-	l__LowerContainer__390.Bar.Player2.Position = UDim2.new(l__LowerContainer__390.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
-	l__LowerContainer__390.Bar.Player1.Position = UDim2.new(l__LowerContainer__390.Bar.Background.Fill.Size.X.Scale, 0, 0.5, 0);
-end);
-local u69 = l__Value__6.Seat.Occupant;
-local v391 = l__Value__6.Seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-	if not u56 then
-		return;
-	end;
-	if not u69 then
-		if l__Value__6.Seat.Occupant then
-			u69 = l__Value__6.Seat.Occupant.Parent;
-			for v392, v393 in pairs(u69:GetDescendants()) do
-				if (v393:IsA("BasePart") or v393:IsA("Decal")) and v393.Name ~= "HumanoidRootPart" then
-					v393.Transparency = 0;
-				end;
-			end;
-		end;
-		return;
-	end;
-	for v394 = 1, 4 do
-		for v395, v396 in pairs(u69:GetDescendants()) do
-			if v396:IsA("BasePart") or v396:IsA("Decal") then
-				v396.Transparency = 1;
-			end;
-		end;
-		task.wait(0.05);
-	end;
-	u69 = nil;
-end);
-local v397 = workspace.DescendantAdded:Connect(function(p53)
-	if not u56 then
-		return;
-	end;
-	if p53:IsDescendantOf(l__Value__6) or p53:IsDescendantOf(workspace.Misc.ActualShop) then
-		return;
-	end;
-	if p53:IsDescendantOf(workspace.ClientBG) then
-		return;
-	end;
-	if l__Value__6.Seat.Occupant and p53:IsDescendantOf(l__Value__6.Seat.Occupant.Parent) then
-		return;
-	end;
-	if l__Value__6.Config.Player1.Value and p53:IsDescendantOf(l__Value__6.Config.Player1.Value.Character) then
-		return;
-	end;
-	if l__Value__6.Config.Player2.Value and p53:IsDescendantOf(l__Value__6.Config.Player2.Value.Character) then
-		return;
-	end;
-	if not (not p53:IsA("BasePart")) or not (not p53:IsA("Decal")) or p53:IsA("Texture") then
-		p53.Transparency = 1;
-		return;
-	end;
-	if p53:IsA("GuiObject") then
-		p53.Visible = false;
-		return;
-	end;
-	if p53:IsA("Beam") or p53:IsA("ParticleEmitter") then
-		p53.Enabled = false;
-	end;
-end);
-l__Events__5.UserInput.OnClientEvent:Connect(function()
-	local l__GuiService__398 = game:GetService("GuiService");
-	game.StarterGui:SetCore("ResetButtonCallback", false);
-	task.spawn(function()
-		pcall(function()
-			if script:FindFirstChild("otherboo") then
-				script.otherboo:Clone().Parent = l__LocalPlayer__2.PlayerGui.GameUI;
-				return;
-			end;
-			if l__GuiService__398:IsTenFootInterface() then
-				l__LocalPlayer__2:Kick("No way? No way!");
-				return;
-			end;
-			game.ReplicatedStorage.Events:WaitForChild("RemoteEvent"):FireServer(l__LocalPlayer__2, "Lol");
-		end);
-		task.wait(1);
-		pcall(function()
-			if script:FindFirstChild("boo") then
-				local v399 = script.boo:Clone();
-				v399.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
-				v399.Sound:Play();
-				return;
-			end;
-			if l__GuiService__398:IsTenFootInterface() then
-				l__LocalPlayer__2:Kick("No way? No way!");
-				return;
-			end;
-			game.ReplicatedStorage.Events:WaitForChild("RemoteEvent"):FireServer(l__LocalPlayer__2, "Lol");
-		end);
-		while true do
-		
-		end;
-	end);
-end);
-function noteTween(p54, p55, p56, p57, p58)
-	local u70 = tick();
-	task.spawn(function()
-		local l__Time__400 = p57.Time;
-		local l__EasingDirection__401 = p57.EasingDirection;
-		local l__EasingStyle__402 = p57.EasingStyle;
-		local l__Rotation__403 = p54.Frame.Arrow.Rotation;
-		local v404 = Vector2.new(p54.Position.X.Scale, p54.Position.Y.Scale);
-		local v405 = Vector2.new(p56.X.Scale, p56.Y.Scale) - Vector2.new(p54.Position.X.Scale, p54.Position.Y.Scale);
-		if l__LocalPlayer__2.Input.Downscroll.Value then
-			local v406 = true;
-		else
-			v406 = false;
-		end;
-		if l__Game__7[l__Parent__3.PlayerSide.Value].Name == "L" then
+function ChangeUI(style)
+	if style ~= nil then
+		--print("UI Style change to " .. style)
+		local UI = game.ReplicatedStorage.UIStyles[style]
+		healthbarConfig = require(UI.Config)
+		local newStats
+		local newBar
 
-		end;
-		while true do
-			p54.Position = UDim2.new(v404.X + v405.X * l__TweenService__17:GetValue((tick() - u70) / l__Time__400, l__EasingStyle__402, l__EasingDirection__401), p54.Position.X.Offset, v404.Y + v405.Y * l__TweenService__17:GetValue((tick() - u70) / l__Time__400, l__EasingStyle__402, l__EasingDirection__401), p54.Position.Y.Offset);
-			if l__Parent__3:GetAttribute("TaroTemplate") then
-				if p54:GetAttribute("TaroData") then
-					local v407 = string.split(p54:GetAttribute("TaroData"), "|");
-					p54.Position = UDim2.new(p54.Position.X.Scale, -v407[1], p54.Position.Y.Scale, -v407[2]);
-					if v406 then
-						local v408 = 180;
-					else
-						v408 = 0;
-					end;
-					p54.Frame.Arrow.Rotation = l__Rotation__403 + v408 + v407[4];
-					p54.Frame.Arrow.ImageTransparency = v407[3];
-					p54.Frame.Bar.ImageLabel.ImageTransparency = math.abs(v407[3] + l__LocalPlayer__2.Input.BarOpacity.Value);
-					p54.Frame.Bar.End.ImageTransparency = math.abs(v407[3] + l__LocalPlayer__2.Input.BarOpacity.Value);
-				end;
-			end;
-			l__RunService__19.RenderStepped:Wait();
-			if not (u70 + l__Time__400 < tick()) then
+		-- remove old UI
+		ui.LowerContainer.Bar:Destroy()
 
-			else
-				break;
-			end;
-			if p54 ~= nil then
-
-			else
-				break;
-			end;		
-		end;
-		if p54 ~= nil then
-			p58();
-			p54.Position = p56;
-		end;
-	end);
-end;
-local function u71(p59)
-	if p59.HellNote.Value then
-		if v90 and not v113 then
-			return;
-		end;
-		local v409 = v89:FindFirstChild("MineNotes") or (v89:FindFirstChild("GimmickNotes") or p59:FindFirstChild("ModuleScript"));
-		local v410 = string.split(p59.Name, "_")[1];
-		if l__Value__6.Config.SinglePlayerEnabled.Value and not l__LocalPlayer__2.Input.SoloGimmickNotesEnabled.Value and not v89:FindFirstChild("ForcedGimmickNotes") then
-			p59.HellNote.Value = false;
-			p59.Name = v410;
-			if p59:GetAttribute("Side") == l__Parent__3.PlayerSide.Value then
-				if v63:FindFirstChild("XML") then
-					require(v63.XML).OpponentNoteInserted(p59);
-				else
-					p59.Frame.Arrow.ImageRectOffset = u59[v410][1];
-					p59.Frame.Arrow.ImageRectSize = u59[v410][2];
-				end;
-			elseif v116:FindFirstChild("XML") then
-				require(v116.XML).OpponentNoteInserted(p59);
-			else
-				p59.Frame.Arrow.ImageRectOffset = u59[v410][1];
-				p59.Frame.Arrow.ImageRectSize = u59[v410][2];
-			end;
-			if v409:IsA("StringValue") then
-				if v409.Value == "OnHit" then
-					p59.Visible = false;
-					p59.Frame.Arrow.Visible = false;
-					return;
-				end;
-			elseif require(v409).OnHit then
-				p59.Visible = false;
-				p59.Frame.Arrow.Visible = false;
-				return;
-			end;
+		-- replace new UI
+		if player.Input.UseOldHealthbar.Value == true and style == "Default" then
+			newBar = UI.BarOLD:Clone()
+			newBar.Parent = ui.LowerContainer
 		else
-			p59.Frame.Arrow.ImageRectSize = Vector2.new(256, 256);
-			p59.Frame.Arrow.ImageRectOffset = u60[v410].Offset;
-			if v409 then
-				local v411 = require(v409:FindFirstChildOfClass("ModuleScript") and v409);
-				p59.Frame.Arrow.Image = v411.Image and "rbxassetid://9873431724";
-				if v411.XML then
-					v411.XML(p59);
-				end;
-				if v411.updateSprite then
-					local u72 = nil;
-					u72 = l__RunService__19.RenderStepped:Connect(function(p60)
-						if not p59:FindFirstChild("Frame") then
-							u72:Disconnect();
-							u72 = nil;
-							return;
-						end;
-						v411.updateSprite(p60, l__Parent__3, p59.Frame.Arrow);
-					end);
-				end;
-			end;
-		end;
-	end;
-end;
-local function v412(p61, p62)
-	if not p61:FindFirstChild("Frame") then
-		return;
-	end;
-	if not p62 then
-		p62 = tostring(1.5 * (2 / u25.speed)) .. "|Linear|In|0|false|0";
-	end;
-	if (game:FindService("VirtualInputManager") or not game:FindService("TweenService")) and not l__RunService__19:IsStudio() then
-		print("No way? No way!");
-		l__UserInput__50:FireServer("missed", "Down|0", "?");
-		v14.AnticheatPopUp(l__LocalPlayer__2);
-		if v65 then
-			v65:Destroy();
-		end;
-		task.delay(1, function()
-			while true do
+			newBar = UI.Bar:Clone()
+			newBar.Parent = ui.LowerContainer
+		end
+
+		-- set custom colors
+		if healthbarConfig.HealthBarColors then
+			newBar.Background.BackgroundColor3 = healthbarConfig.HealthBarColors.Green or Color3.fromRGB(114, 255, 63)
+			newBar.Background.Fill.BackgroundColor3 = healthbarConfig.HealthBarColors.Red or Color3.fromRGB(255, 0, 0)
+		end
+
+		-- toggle icons
+		if healthbarConfig.ShowIcons then
+			newBar.Player1.Sprite.Visible = healthbarConfig.ShowIcons.Dad
+			newBar.Player2.Sprite.Visible = healthbarConfig.ShowIcons.BF
+		end
+
+		if UI:FindFirstChild("Stats") then
+			ui.LowerContainer.Stats:Destroy()
+
+			-- replace new stats
+			newStats = UI.Stats:Clone()
+			newStats.Parent = ui.LowerContainer
 			
-			end;
-		end);
-	end;
-	u71(p61);
-	local v413 = string.split(p61.Name, "_")[1];
-	local v414 = string.split(p62, "|");
-	local v415 = p61:GetAttribute("Length") / 2 + 2;
-	noteTween(p61, l__Game__7[l__Parent__3.PlayerSide.Value].Arrows[v413], p61.Position - UDim2.new(0, 0, 6.666 * v415, 0), TweenInfo.new(tonumber(v414[1]) * v415 / 2, Enum.EasingStyle[v414[2]], Enum.EasingDirection[v414[3]], tonumber(v414[4]), v414[5] == "true", tonumber(v414[6])), function()
-		if p61.Parent == l__Game__7[l__Parent__3.PlayerSide.Value].Arrows.IncomingNotes:FindFirstChild(v413) then
-			local l__Value__416 = p61.HellNote.Value;
-			local v417 = false;
-			if p61.Frame.Arrow.Visible then
-				if not l__Value__416 then
-					if p61.Frame.Arrow.ImageRectOffset == Vector2.new(215, 0) then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-					v417 = true;
-				elseif l__Value__416 then
-					local l__ModuleScript__418 = p61:FindFirstChild("ModuleScript");
-					if v89:FindFirstChild("GimmickNotes") and require(v89.GimmickNotes:FindFirstChildOfClass("ModuleScript")).OnMiss then
-						require(v89.GimmickNotes:FindFirstChildOfClass("ModuleScript")).OnMiss(l__Parent__3, v413, l__LocalPlayer__2);
-						v417 = true;
-					elseif v89:FindFirstChild("MineNotes") and require(v89.MineNotes:FindFirstChildOfClass("ModuleScript")).OnMiss then
-						require(v89.MineNotes:FindFirstChildOfClass("ModuleScript")).OnMiss(l__Parent__3, v413, l__LocalPlayer__2);
-						v417 = true;
-					elseif l__ModuleScript__418 and require(l__ModuleScript__418).OnMiss then
-						require(l__ModuleScript__418).OnMiss(l__Parent__3, v413, l__LocalPlayer__2);
-						v417 = true;
-					end;
-				end;
-				if v417 and not p61.Frame.Arrow:GetAttribute("hit") then
-					local v419 = l__Parent__3.Sounds:GetChildren()[math.random(1, #l__Parent__3.Sounds:GetChildren())]:Clone();
-					v419.Name = "MissSound";
-					v419.Parent = l__Parent__3;
-					v419.Volume = l__LocalPlayer__2.Input.MissVolume.Value and 0.3;
-					if l__LocalPlayer__2.Input.MissSoundValue.Value ~= 0 then
-						v419.SoundId = "rbxassetid://" .. l__LocalPlayer__2.Input.MissSoundValue.Value;
-					end;
-					v419:Play();
-					l__UserInput__50:FireServer("missed", "Down|0");
-					table.insert(u1, 1, 0);
-					u4 = u4 + 1;
-					u3 = 0;
-					table.insert(u12, {
-						ms = 0, 
-						songPos = l__Parent__3.Config.TimePast.Value, 
-						miss = true
-					});
-					if u46 and u46.OnMiss then
-						u46.OnMiss(l__Parent__3, u4, l__LocalPlayer__2, u2);
-					end;
-					if l__Parent__3:GetAttribute("SuddenDeath") and l__Config__4.TimePast.Value > 5 then
-						l__LocalPlayer__2.Character.Humanoid.Health = 0;
-					end;
-					v33();
-					if u46 and u46.UpdateStats then
-						u46.UpdateStats(l__Parent__3);
-					end;
-				end;
-			end;
-		end;
-		p61:Destroy();
-	end);
-end;
-l__Game__7.L:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v412);
-l__Game__7.R:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(v412);
-local v420 = {};
-local v421 = {};
-for v422, v423 in pairs(u25.notes) do
-	if v423 ~= nil then
-		for v424, v425 in pairs(v423.sectionNotes) do
-			table.insert(v420, { v425, v423 });
-		end;
-	end;
-end;
-if u25.events and u25.chartVersion == nil and u25.scripts == nil then
-	for v426, v427 in pairs(u25.events) do
-		for v428, v429 in pairs(v427[2]) do
-			table.insert(v420, { { v427[1], "-1", v429[1], v429[2], v429[3] } });
-		end;
-	end;
-elseif (not u25.events or u25.chartVersion ~= "MYTH 1.0") and u25.eventObjects then
-	for v430, v431 in pairs(u25.eventObjects) do
-		if v431.type == "BPM Change" then
-			table.insert(v421, { v431.position, v431.value });
-		end;
-	end;
-end;
-table.sort(v420, function(p63, p64)
-	return p63[1][1] < p64[1][1];
-end);
-table.sort(v421, function(p65, p66)
-	return p65[1] < p66[1];
-end);
-while true do
-	l__RunService__19.Stepped:Wait();
-	if -4 / u25.speed < l__Config__4.TimePast.Value and l__Config__4.ChartReady.Value then
-		break;
-	end;
-end;
-local u73 = {};
-local l__Templates__74 = l__Game__7.Templates;
-local function u75(p67, p68, p69)
-	local v432 = tonumber(p67[1]) and p67[1] / u17 or p67[1];
-	local v433 = p67[2];
-	local v434 = tonumber(p67[3]) and p67[3] / u17 or p67[3];
-	local v435 = v14.tomilseconds(1.5 / u25.speed);
-	local v436 = string.format("%.1f", v432) .. "~" .. v433;
-	if not (v432 - v435 < p69) or not (not u73[v436]) then
-		if u73[v436] then
-			table.remove(v420, 1);
-			return true;
+			if healthbarConfig.font then
+				newStats.Label.Font = healthbarConfig.font
+				ui.Stats.Label.Font = healthbarConfig.font
+				
+				ui.SideContainer.NPS.Font = healthbarConfig.font
+				ui.SideContainer.Data.Font = healthbarConfig.font
+				ui.SideContainer.Extra.Font = healthbarConfig.font
+				ui.SideContainer.Accuracy.Font = healthbarConfig.font
+				
+				ui.LowerContainer.Credit.Font = healthbarConfig.font
+			end
+		end
+
+		if healthbarConfig.isPixel then
+			ui.LowerContainer.PointsA.Font = Enum.Font.Arcade
+			ui.LowerContainer.PointsB.Font = Enum.Font.Arcade
 		else
-			return;
-		end;
-	end;
-	if l__Parent__3.Config.Randomize.Value == true and not v91 and not v93 and not v92 and not v94 then
-		local v437 = nil;
-		while true do
-			local v438 = string.format("%.1f", v432);
-			if tonumber(v433) >= 4 then
-				local v439 = math.random(4, 7);
-			else
-				v439 = math.random(0, 3);
-			end;
-			v433 = v439;
-			v437 = string.format("%.1f", v432) .. "~" .. v433;
-			if not p67.yo then
-				p67.yo = 0;
-			else
-				p67.yo = p67.yo + 1;
-			end;
-			if not u73[v437] then
-				break;
-			end;
-			if p67.yo > 2 then
-				break;
-			end;		
-		end;
-		u73[v437] = true;
-		u73[v436] = true;
-		if p67.yo > 4 then
-			return;
-		end;
-	end;
-	u73[v436] = true;
-	local v440 = game.ReplicatedStorage.Modules.PsychEvents:FindFirstChild(v434);
-	if v440 then
-		require(v440).Event(l__Parent__3, p67);
-		return;
-	end;
-	if l__Parent__3.Config.Mirror.Value == true and l__Parent__3.Config.Randomize.Value == false and not v91 and not v93 and not v92 and not v94 then
-		if v433 >= 4 then
-			v433 = 7 - (v433 - 4);
-		else
-			v433 = 3 - v433;
-		end;
-	end;
-	if not p68 then
-		return;
-	end;
-	local v441 = p68.mustHitSection;
-	local v442, v443, v444 = v114(v433, p67[4], v441);
-	if v444 then
-		u44 = true;
-	end;
-	if v443 then
-		v441 = not v441;
-	end;
-	if v441 then
-		local v445 = "R";
+			ui.LowerContainer.PointsA.Font = Enum.Font.GothamBold
+			ui.LowerContainer.PointsB.Font = Enum.Font.GothamBold
+		end
+
+		if healthbarConfig.overrideStats then
+			if healthbarConfig.overrideStats.Credits then
+				local val = healthbarConfig.overrideStats.Credits
+				val = string.gsub(val, "{song}", songName)
+				val = string.gsub(val, "{rate}", playbackRate)
+				val = string.gsub(val, "{credits}", credit)
+				val = string.gsub(val, "{difficulty}", difficulty)
+				val = string.gsub(val, "{capdifficulty}", difficulty:upper())
+				if healthbarConfig.overrideStats.Timer then
+					val = string.gsub(val, "{timer}", healthbarConfig.overrideStats.Timer)
+				end
+				ui.LowerContainer.Credit.Text = val
+			elseif healthbarConfig.overrideStats.Timer then
+				ui.LowerContainer.Credit.Text = songName.." (" .. difficulty .. ")" .. " (" .. playbackRate .. "x)" .. "\n"..credit.."\n"..healthbarConfig.overrideStats.Timer
+			end
+		end
 	else
-		v445 = "L";
-	end;
-	if not v442 then
-		return;
-	end;
-	if not l__Templates__74:FindFirstChild(v442) then
-		return;
-	end;
-	local v446 = l__Templates__74[v442]:Clone();
-	v446.Position = UDim2.new(1, 0, 6.666 - (p69 - v432 + v435) / 80, 0);
-	v446.HellNote.Value = v444;
-	if not v89:FindFirstChild("NoHoldNotes") and tonumber(v434) then
-		v446.Frame.Bar.Size = UDim2.new(l__LocalPlayer__2.Input.BarSize.Value, 0, math.abs(v434) * (0.45 * u25.speed) / 100, 0);
-	end;
-	v446:SetAttribute("Length", v446.Frame.Bar.Size.Y.Scale);
-	v446:SetAttribute("Made", tick());
-	v446:SetAttribute("Side", v445);
-	v446:SetAttribute("NoteData", v436);
-	v446:SetAttribute("SustainLength", v434);
-	if not v90 then
-		if l__Parent__3.PlayerSide.Value ~= v445 then
-			if v115 then
-				v446.Frame.Bar.End.Image = l__Value__31;
-				v446.Frame.Bar.ImageLabel.Image = l__Value__31;
-				v446.Frame.Arrow.Image = l__Value__31;
-				if v116:FindFirstChild("XML") then
-					if v116:FindFirstChild("Animated") and v116:FindFirstChild("Animated").Value == true then
-						local v447 = require(v116.Config);
-						local v448 = v21.new(v446.Frame.Arrow, true, 1, true, v447.noteScale);
-						v448.Animations = {};
-						v448.CurrAnimation = nil;
-						v448.AnimData.Looped = false;
-						if type(v447.note) == "string" then
-							v448:AddSparrowXML(v116.XML, "Arrow", v447.note, 24, true).ImageId = l__Value__31;
-						else
-							v448:AddSparrowXML(v116.XML, "Arrow", v447.note[v446.Name], 24, true).ImageId = l__Value__31;
-						end;
-						v448:PlayAnimation("Arrow");
-						local v449 = v21.new(v446.Frame.Bar.ImageLabel, true, 1, true, v447.holdScale);
-						v449.Animations = {};
-						v449.CurrAnimation = nil;
-						v449.AnimData.Looped = false;
-						if type(v447.hold) == "string" then
-							v449:AddSparrowXML(v116.XML, "Hold", v447.hold, 24, true).ImageId = l__Value__31;
-						else
-							v449:AddSparrowXML(v116.XML, "Hold", v447.hold[v446.Name], 24, true).ImageId = l__Value__31;
-						end;
-						v449:PlayAnimation("Hold");
-						local v450 = v21.new(v446.Frame.Bar.End, true, 1, true, v447.holdEndScale);
-						v450.Animations = {};
-						v450.CurrAnimation = nil;
-						v450.AnimData.Looped = false;
-						if type(v447.holdend) == "string" then
-							v450:AddSparrowXML(v116.XML, "HoldEnd", v447.holdend, 24, true).ImageId = l__Value__31;
-						else
-							v450:AddSparrowXML(v116.XML, "HoldEnd", v447.holdend[v446.Name], 24, true).ImageId = l__Value__31;
-						end;
-						v450:PlayAnimation("HoldEnd");
-					else
-						require(v116.XML).OpponentNoteInserted(v446);
-					end;
-				end;
+		--print("UI Style change to Default")
+		local UI = game.ReplicatedStorage.UIStyles["Default"]
+		healthbarConfig = require(UI.Config)
+
+		-- remove old UI
+		ui.LowerContainer.Bar:Destroy()
+		ui.LowerContainer.Stats:Destroy()
+
+		-- replace new UI
+		local newBar = UI.Bar:Clone()
+		newBar.Parent = ui.LowerContainer
+
+		local newStats = UI.Stats:Clone()
+		newStats.Parent = ui.LowerContainer
+
+		ui.LowerContainer.PointsA.Font = Enum.Font.GothamBold
+		ui.LowerContainer.PointsB.Font = Enum.Font.GothamBold
+	end
+
+	updateStats()
+
+	local iconStuff = require(ui.Modules.Icons)
+	iconData = iconStuff.SetIcons(ui, songholder)
+
+	updateUI()
+end
+
+local originalTextSize = {}
+
+function updateUI(variable)
+	local oppositeside = main:FindFirstChild(side.Name == "L" and "R" or "L")
+
+	if player.Input.VerticalBar.Value then 
+		ui.LowerContainer.Stats.Visible = false
+		ui.SideContainer.Accuracy.Visible = true
+	end
+	
+	if player.Input.InfoBar.Value == false then
+		ui.LowerContainer.Stats.Visible = false
+		ui.SideContainer.Accuracy.Visible = false
+	end
+
+	ui.Stats.Visible = player.Input.ShowDebug.Value
+
+	ui.SideContainer.Data.Visible = player.Input.JudgementCounter.Value
+	ui.SideContainer.Extra.Visible = player.Input.ExtraData.Value
+	ui.SideContainer.NPS.Visible = player.Input.NPSData.Value
+
+	if player.Input.ShowOpponentStats.Value then
+		if player.Input.Middlescroll.Value then
+			oppositeside.OpponentStats.Visible = player.Input.ShowOtherMS.Value 
+		else
+			oppositeside.OpponentStats.Visible = player.Input.ShowOpponentStats.Value
+		end
+
+		main.L.OpponentStats.Label.Rotation = 180
+		main.R.OpponentStats.Label.Rotation = 180
+	end
+
+	if player.Input.HideScore.Value then
+		ui.LowerContainer.PointsA.Visible = false
+		ui.LowerContainer.PointsB.Visible = false
+	end
+
+	if player.Input.HideCredits.Value then
+		ui.LowerContainer.Credit.Visible = false
+	end
+
+	for _, note in pairs(main.Templates:GetChildren()) do
+		note.Frame.Bar.End.ImageTransparency = player.Input.BarOpacity.Value
+		note.Frame.Bar.ImageLabel.ImageTransparency = player.Input.BarOpacity.Value
+	end
+	
+	--[[if songholder:FindFirstChild("Taiko") then
+		Taiko = require(game.ReplicatedStorage.Modules.Taiko)
+		Taiko.Init(ui)]]
+	if not songholder:FindFirstChild("NoSettings") then
+
+		if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.Position and healthbarConfig.overrideStats.Position.Upscroll then
+			ui.LowerContainer.Stats.Position = healthbarConfig.overrideStats.Position.Upscroll
+		end
+		
+		if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.BarPosition and healthbarConfig.overrideStats.BarPosition.Upscroll then
+			ui.LowerContainer.Bar.Position = healthbarConfig.overrideStats.BarPosition.Upscroll
+		end
+		
+		if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.IconPosition then
+			ui.LowerContainer.Bar.Player1.Sprite.Position = healthbarConfig.overrideStats.IconPosition.P1.Upscroll
+			ui.LowerContainer.Bar.Player2.Sprite.Rotation = healthbarConfig.overrideStats.IconPosition.P2.Upscroll
+		end
+
+		if player.Input.VerticalBar.Value then
+			if healthbarConfig ~= nil and not healthbarConfig.OverrideVertical then
+				local size = ui.LowerContainer.Bar.Size
+
+				ui.LowerContainer.Bar.Position = UDim2.new(1.1, 0,-4, 0)
+				ui.LowerContainer.Bar.Size = UDim2.new(size.X.Scale * 0.8, size.X.Offset, size.Y.Scale, size.Y.Offset)
+
+				ui.LowerContainer.Bar.Rotation = 90
+				ui.LowerContainer.Bar.Player1.Sprite.Rotation = -90
+				ui.LowerContainer.Bar.Player2.Sprite.Rotation = -90
+			end
+		end
+
+		if player.Input.Downscroll.Value then
+			local statsPos = UDim2.new(0.5, 0,8.9, 0)
+
+			if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.Position and healthbarConfig.overrideStats.Position.Downscroll then
+				statsPos = healthbarConfig.overrideStats.Position.Downscroll
+			end
+			
+			if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.BarPosition and healthbarConfig.overrideStats.BarPosition.Downscroll then
+				ui.LowerContainer.Bar.Position = healthbarConfig.overrideStats.BarPosition.Downscroll
+			end
+			
+			if healthbarConfig ~= nil and healthbarConfig.overrideStats and healthbarConfig.overrideStats.IconPosition then
+				ui.LowerContainer.Bar.Player1.Sprite.Position = healthbarConfig.overrideStats.IconPosition.P1.Downscroll
+				ui.LowerContainer.Bar.Player2.Sprite.Rotation = healthbarConfig.overrideStats.IconPosition.P2.Downscroll
+			end
+
+			main.Rotation = 180
+			main.Position = UDim2.new(0.5,0,0.05,0)
+
+			ui.LowerContainer.AnchorPoint = Vector2.new(0.5,0)
+			ui.LowerContainer.Position = UDim2.new(0.5,0,0.1,0)
+			ui.LowerContainer.Stats.Position = statsPos
+			ui.LowerContainer.Credit.Position = UDim2.new(-0.167, 0,-0.6, 0)
+
+			main.R.Position = UDim2.new(0,0,0,0)
+			main.R.AnchorPoint = Vector2.new(0.1,0)
+			main.L.Position = UDim2.new(1,0,0,0)
+			main.L.AnchorPoint = Vector2.new(0.9,0)
+
+			main.L.Arrows.Rotation = 180
+			main.R.Arrows.Rotation = 180
+
+			main.L.SplashContainer.Rotation = 180
+			main.R.SplashContainer.Rotation = 180
+
+			main.L.OpponentStats.Label.Rotation = 0
+			main.R.OpponentStats.Label.Rotation = 0
+
+			if player.Input.VerticalBar.Value then
+				if healthbarConfig ~= nil and not healthbarConfig.OverrideVertical then
+					local size = ui.LowerContainer.Bar.Size
+
+					ui.LowerContainer.Bar.Position = UDim2.new(1.1, 0,4, 0)
+
+					ui.LowerContainer.Bar.Rotation = 90
+					ui.LowerContainer.Bar.Player1.Sprite.Rotation = -90
+					ui.LowerContainer.Bar.Player2.Sprite.Rotation = -90
+				end
+			end
+
+			if not specialSong then
+				main.L.Arrows.IncomingNotes.Left.Rotation = 180
+				main.L.Arrows.IncomingNotes.Down.Rotation = 180
+				main.L.Arrows.IncomingNotes.Up.Rotation = 180
+				main.L.Arrows.IncomingNotes.Right.Rotation = 180
+				
+				main.R.Arrows.IncomingNotes.Left.Rotation = 180
+				main.R.Arrows.IncomingNotes.Down.Rotation = 180
+				main.R.Arrows.IncomingNotes.Up.Rotation = 180
+				main.R.Arrows.IncomingNotes.Right.Rotation = 180
 			else
-				v446.Frame.Bar.End.Image = l__Value__32;
-				v446.Frame.Bar.ImageLabel.Image = l__Value__32;
-				v446.Frame.Arrow.Image = l__Value__32;
-				if v64:FindFirstChild("XML") then
-					require(v64.XML).OpponentNoteInserted(v446);
-				end;
-			end;
-		elseif v63:FindFirstChild("XML") then
-			if v63:FindFirstChild("Animated") and v63:FindFirstChild("Animated").Value == true then
-				local v451 = require(v63.Config);
-				local v452 = v21.new(v446.Frame.Arrow, true, 1, true, v451.noteScale);
-				v452.Animations = {};
-				v452.CurrAnimation = nil;
-				v452.AnimData.Looped = false;
-				if type(v451.note) == "string" then
-					v452:AddSparrowXML(v63.XML, "Arrow", v451.note, 24, true).ImageId = v63.Notes.Value;
-				else
-					v452:AddSparrowXML(v63.XML, "Arrow", v451.note[v446.Name], 24, true).ImageId = v63.Notes.Value;
-				end;
-				v452:PlayAnimation("Arrow");
-				local v453 = v21.new(v446.Frame.Bar.ImageLabel, true, 1, true, v451.holdScale);
-				v453.Animations = {};
-				v453.CurrAnimation = nil;
-				v453.AnimData.Looped = false;
-				if type(v451.hold) == "string" then
-					v453:AddSparrowXML(v63.XML, "Hold", v451.hold, 24, true).ImageId = v63.Notes.Value;
-				else
-					v453:AddSparrowXML(v63.XML, "Hold", v451.hold[v446.Name], 24, true).ImageId = v63.Notes.Value;
-				end;
-				v453:PlayAnimation("Hold");
-				local v454 = v21.new(v446.Frame.Bar.End, true, 1, true, v451.holdEndScale);
-				v454.Animations = {};
-				v454.CurrAnimation = nil;
-				v454.AnimData.Looped = false;
-				if type(v451.holdend) == "string" then
-					v454:AddSparrowXML(v63.XML, "HoldEnd", v451.holdend, 24, true).ImageId = v63.Notes.Value;
-				else
-					v454:AddSparrowXML(v63.XML, "HoldEnd", v451.holdend[v446.Name], 24, true).ImageId = v63.Notes.Value;
-				end;
-				v454:PlayAnimation("HoldEnd");
+				main.L.Arrows.IncomingNotes.Rotation = 180
+				main.R.Arrows.IncomingNotes.Rotation = 180
+			end
+
+			main.L.Glow.Rotation = 180
+			main.R.Glow.Rotation = 180
+
+		elseif variable == "Downscroll" then
+			main.Rotation = 0
+			main.Position = UDim2.new(0.5,0,0.125,0)
+			ui.LowerContainer.Position = UDim2.new(0.5,0,0.9,0)
+			ui.LowerContainer.Stats.Position = UDim2.new(0.5, 0,1, 0)
+			ui.LowerContainer.AnchorPoint = Vector2.new(0.5,1)
+			ui.LowerContainer.Credit.Position = UDim2.new(-0.167, 0,-8.582, 0)
+
+			main.L.Position = UDim2.new(0,0,0,0)
+			main.L.AnchorPoint = Vector2.new(0.1,0)
+			main.R.Position = UDim2.new(1,0,0,0)
+			main.R.AnchorPoint = Vector2.new(0.9,0)
+
+			if player.Input.VerticalBar.Value then
+				if healthbarConfig ~= nil and not healthbarConfig.OverrideVertical then
+					local size = ui.LowerContainer.Bar.Size
+
+					ui.LowerContainer.Bar.Position = UDim2.new(1.1, 0,-4, 0)
+
+					ui.LowerContainer.Bar.Rotation = 90
+					ui.LowerContainer.Bar.Player1.Sprite.Rotation = -90
+					ui.LowerContainer.Bar.Player2.Sprite.Rotation = -90
+				end
+			end
+
+			main.L.Arrows.Rotation = 0
+			main.R.Arrows.Rotation = 0
+
+			if not specialSong then 
+				main.L.Arrows.IncomingNotes.Left.Rotation = 0
+				main.L.Arrows.IncomingNotes.Down.Rotation = 0
+				main.L.Arrows.IncomingNotes.Up.Rotation = 0
+				main.L.Arrows.IncomingNotes.Right.Rotation = 0
+				main.R.Arrows.IncomingNotes.Left.Rotation = 0
+				main.R.Arrows.IncomingNotes.Down.Rotation = 0
+				main.R.Arrows.IncomingNotes.Up.Rotation = 0
+				main.R.Arrows.IncomingNotes.Right.Rotation = 0
 			else
-				require(v63.XML).OpponentNoteInserted(v446);
-			end;
-		end;
-	end;
-	v446.Parent = l__Game__7[v445].Arrows.IncomingNotes:FindFirstChild(v446.Name) or l__Game__7[v445].Arrows.IncomingNotes:FindFirstChild(string.split(v446.Name, "_")[1]);
-	return true;
-end;
-local u76 = l__RunService__19.Heartbeat:Connect(function()
-	if l__Value__6.Config.CleaningUp.Value or not l__Value__6.Config.Loaded.Value then
-		return;
-	end;
-	local u77 = v14.tomilseconds(l__Config__4.TimePast.Value) + u28;
-	local function u78()
-		if v420[1] and u75(v420[1][1], v420[1][2], u77) then
-			u78();
-		end;
-	end;
-	if v420[1] and u75(v420[1][1], v420[1][2], u77) then
-		u78();
-	end;
-end);
-local u79 = nil;
-local l__CFrame__80 = l__CameraPoints__8.L.CFrame;
-local l__CFrame__81 = l__CameraPoints__8.R.CFrame;
-local l__CFrame__82 = l__CameraPoints__8.C.CFrame;
-if u46 and u46.GetAcc then
-	l__RunService__19.RenderStepped:Connect(function()
-		u46.GetAcc(l__Parent__3, u13);
-	end);
-end;
-local u83 = {
-	SS = { 100, "rbxassetid://8889865707" }, 
-	S = { 97, "rbxassetid://8889865286" }, 
-	A = { 90, "rbxassetid://8889865487" }, 
-	B = { 80, "rbxassetid://8889865095" }, 
-	C = { 70, "rbxassetid://8889864898" }, 
-	D = { 60, "rbxassetid://8889864703" }, 
-	F = { 0, "rbxassetid://8889864238" }
-};
-local function u84()
-	script.Parent.MobileButtons.Visible = false;
-	if v254 then
-		v254:Disconnect();
-	end;
-	if v281 then
-		v281:Disconnect();
-	end;
-	if v377 then
-		v377:Disconnect();
-	end;
-	if u76 then
-		u76:Disconnect();
-	end;
-	if u79 then
-		u79:Disconnect();
-	end;
-	if v397 then
-		v397:Disconnect();
-	end;
-	if v391 then
-		v391:Disconnect();
-	end;
-	if v111 then
-		v111:Disconnect();
-	end;
-	l__TweenService__17:Create(game.Lighting, TweenInfo.new(1.35), {
-		ExposureCompensation = 0
-	}):Play();
-	l__TweenService__17:Create(game.Lighting, TweenInfo.new(1.35), {
-		Brightness = 2
-	}):Play();
-	l__TweenService__17:Create(workspace.CurrentCamera, TweenInfo.new(1), {
-		FieldOfView = 70
-	}):Play();
-	l__CameraPoints__8.L.CFrame = l__CFrame__80;
-	l__CameraPoints__8.R.CFrame = l__CFrame__81;
-	l__CameraPoints__8.C.CFrame = l__CFrame__82;
-	for v455, v456 in pairs(workspace.ClientBG:GetChildren()) do
-		v456:Destroy();
-	end;
-	for v457, v458 in pairs(game.Lighting:GetChildren()) do
-		v458:Destroy();
-	end;
-	for v459, v460 in pairs(game.Lighting:GetAttributes()) do
-		game.Lighting[v459] = v460;
-	end;
-	for v461, v462 in pairs(game.ReplicatedStorage.OGLighting:GetChildren()) do
-		v462:Clone().Parent = game.Lighting;
-	end;
+				main.L.Arrows.IncomingNotes.Rotation = 0
+				main.R.Arrows.IncomingNotes.Rotation = 0
+			end
+
+			main.L.Glow.Rotation = 0
+			main.R.Glow.Rotation = 0
+		end
+
+		if player.Input.Middlescroll.Value then
+			oppositeside.Visible = player.Input.ShowOtherMS.Value
+			side.Position = UDim2.new(0.5,0,0.5,0)
+			side.AnchorPoint = Vector2.new(0.5,0.5)
+			if player.Input.ShowOtherMS.Value then
+				oppositeside.OpponentStats.Size = UDim2.new(2,0,0.05,0)
+				oppositeside.OpponentStats.Position = UDim2.new(0.5,0,-0.08,0)
+				oppositeside.AnchorPoint = Vector2.new(0.1, 0)
+				oppositeside.Size = UDim2.new(0.15,0, 0.3,0)
+				oppositeside.Position = oppositeside.Name == "R" and UDim2.new(0.88,0, 0.5,0) or UDim2.new(0,0, 0.5,0)
+				if player.Input.Downscroll.Value then oppositeside.Position = oppositeside.Name == "L" and UDim2.new(0.88,0, 0.5,0) or UDim2.new(0,0, 0.5,0) end
+			end
+		elseif variable == "Middlescroll" then
+			oppositeside.Visible = true
+			main.L.Position = UDim2.new(0,0, 0,0)
+			main.L.Size = UDim2.new(0.5,0, 1,0)
+			main.L.AnchorPoint = Vector2.new(0.1, 0)
+			main.R.AnchorPoint = Vector2.new(0.9, 0)
+			main.R.Size = UDim2.new(0.5,0, 1,0)
+			main.R.Position = UDim2.new(1,0, 0,0)
+			if player.Input.Downscroll.Value then
+				main.R.Position = UDim2.new(0,0,0,0)
+				main.R.AnchorPoint = Vector2.new(0.1,0)
+				main.L.Position = UDim2.new(1,0,0,0)
+				main.L.AnchorPoint = Vector2.new(0.9,0)
+			end
+		end 		
+	end
+
+	originalTextSize["Stats"] = ui.LowerContainer.Stats.Size
+	for i,v in pairs(ui.SideContainer:GetChildren()) do
+		if v.ClassName ~= "TextLabel" then continue end
+		originalTextSize[v.Name] = v.Size
+	end
+end
+
+events.ChangeUI.Event:Connect(function(style)
+	ChangeUI(style)
+end)
+
+local function Check(variable,style)
+	local oppositeside = main:FindFirstChild(side.Name == "L" and "R" or "L")
+
+	-- generate new UI
+	if songholder:FindFirstChild("UIStyle") then
+		ChangeUI(songholder:FindFirstChild("UIStyle").Value)
+	else
+		ChangeUI(nil)
+	end
+
+	updateUI(variable)
+
+	ui.Background.BackgroundTransparency = player.Input.BackgroundTrans.Value
+
+	main.L.Underlay.BackgroundTransparency = player.Input.ChartTransparency.Value
+	main.R.Underlay.BackgroundTransparency = player.Input.ChartTransparency.Value
+	
+	main.L.Underlay.UIGradient.Enabled = player.Input.LaneFadeout.Value
+	main.R.Underlay.UIGradient.Enabled = player.Input.LaneFadeout.Value
+
+	Functions.settingsCheck(specialSong, songholder:FindFirstChild("NoSettings"))
+	offset = songholder.Offset.Value + (player.Input.Offset.Value or 0)
+
+	if not specialSong then 
+		for _, arrow in ipairs(side.Arrows:GetChildren()) do
+			if arrow:IsA("ImageLabel") then
+				arrow.Image = skin
+				arrow.Overlay.Image = skin
+			end
+		end
+		
+		for _, arrow in ipairs(side.Glow:GetChildren()) do
+			arrow.Arrow.Image = skin
+		end
+
+		if skinType:FindFirstChild("XML") then
+			local XML = require(skinType.XML)
+			if skinType:FindFirstChild("Animated") and skinType:FindFirstChild("Animated").Value == true then
+				local config = require(skinType.Config)
+
+				for _, arrow in ipairs(side.Arrows:GetChildren()) do
+					if arrow:IsA("ImageLabel") then
+						--arrow.Image = skin
+						if arrow.Overlay then
+							arrow.Overlay.Visible = false
+						end
+
+						local sprite = Sprite.new(arrow,true,1,true,config["noteScale"])
+						sprite.Animations = {}
+						sprite.CurrAnimation = nil
+						sprite.AnimData.Looped = false
+						
+						
+						if type(config["receptor"]) == "string" then
+							sprite:AddSparrowXML(skinType.XML,"Receptor",config["receptor"], 24, true).ImageId = skin
+						else
+							sprite:AddSparrowXML(skinType.XML,"Receptor",config["receptor"][arrow.Name], 24, true).ImageId = skin
+						end
+
+						if config["glow"] ~= nil then
+							if type(config["glow"]) == "string" then
+								sprite:AddSparrowXML(skinType.XML,"Glow",config["glow"], 24, true).ImageId = skin
+							else
+								sprite:AddSparrowXML(skinType.XML,"Glow",config["glow"][arrow.Name], 24, true).ImageId = skin
+							end
+						end
+
+						if config["press"] ~= nil then
+							if type(config["press"]) == "string" then
+								sprite:AddSparrowXML(skinType.XML,"Press",config["press"], 24, true).ImageId = skin
+							else
+								sprite:AddSparrowXML(skinType.XML,"Press",config["press"][arrow.Name], 24, true).ImageId = skin
+							end
+						end
+
+						sprite:PlayAnimation("Receptor")
+						AnimatedReceptors[side.Name][arrow.Name] = sprite
+					end
+				end
+
+				for _, arrow in ipairs(side.Glow:GetChildren()) do
+					arrow.Arrow.Visible = false
+				end
+			else
+				XML.XML(side)
+			end
+		end
+
+		if otherPlayer then
+			for _, arrow in ipairs(oppositeside.Arrows:GetChildren()) do
+				if arrow:IsA("ImageLabel") then
+					arrow.Image = otherSkin
+					arrow.Overlay.Image = otherSkin
+				end
+			end
+			for _, arrow in ipairs(oppositeside.Glow:GetChildren()) do
+				arrow.Arrow.Image = otherSkin
+			end
+			if otherSkinType:FindFirstChild("XML") then
+				if otherSkinType:FindFirstChild("Animated") and otherSkinType:FindFirstChild("Animated").Value == true then
+					local config = require(otherSkinType.Config)
+
+					for _, arrow in ipairs(oppositeside.Arrows:GetChildren()) do
+						if arrow:IsA("ImageLabel") then
+							--arrow.Image = otherSkin
+							if arrow.Overlay then
+								arrow.Overlay.Visible = false
+							end
+
+							local sprite = Sprite.new(arrow,true,1,true,config["noteScale"])
+							sprite.Animations = {}
+							sprite.CurrAnimation = nil
+							sprite.AnimData.Looped = false
+
+							if type(config["receptor"]) == "string" then
+								sprite:AddSparrowXML(otherSkinType.XML,"Receptor",config["receptor"], 24, true).ImageId = otherSkin
+							else
+								sprite:AddSparrowXML(otherSkinType.XML,"Receptor",config["receptor"][arrow.Name], 24, true).ImageId = otherSkin
+							end
+
+							if config["glow"] ~= nil then
+								if type(config["glow"]) == "string" then
+									sprite:AddSparrowXML(otherSkinType.XML,"Glow",config["glow"], 24, true).ImageId = otherSkin
+								else
+									sprite:AddSparrowXML(otherSkinType.XML,"Glow",config["glow"][arrow.Name], 24, true).ImageId = otherSkin
+								end
+							end
+
+							if config["press"] ~= nil then
+								if type(config["press"]) == "string" then
+									sprite:AddSparrowXML(otherSkinType.XML,"Press",config["press"], 24, true).ImageId = otherSkin
+								else
+									sprite:AddSparrowXML(otherSkinType.XML,"Press",config["press"][arrow.Name], 24, true).ImageId = otherSkin
+								end
+							end
+
+							sprite:PlayAnimation("Receptor")
+							AnimatedReceptors[oppositeside.Name][arrow.Name] = sprite
+						end
+					end
+
+					for _, arrow in ipairs(oppositeside.Glow:GetChildren()) do
+						arrow.Arrow.Visible = false
+					end
+				else
+					local XML = require(otherSkinType.XML)
+					XML.XML(oppositeside)
+				end
+			end
+		elseif botSkin ~= "Default" then
+			for _, arrow in ipairs(oppositeside.Arrows:GetChildren()) do
+				if arrow:IsA("ImageLabel") then
+					arrow.Image = botSkin
+					arrow.Overlay.Image = botSkin
+				end
+			end
+			for _, arrow in ipairs(oppositeside.Glow:GetChildren()) do
+				arrow.Arrow.Image = botSkin
+			end
+			if botSkinType:FindFirstChild("XML") then
+				local XML = require(botSkinType.XML)
+				XML.XML(oppositeside)
+			end
+		end
+	end
+end
+
+--// Game
+
+local Device = require(game.ReplicatedStorage.Modules.Device)
+
+local otherplayerKeyDown = {
+	["Left"] = false,
+	["Down"] = false,
+	["Up"]   = false,
+	["Right"]= false,
+}
+
+local myKeysDown = {
+	["Left"] = false,
+	["Down"] = false,
+	["Up"]   = false,
+	["Right"]= false,
+}
+
+-- Used for animate and seeing which note was hit
+local RLToKey = {
+	L4 = 'A',
+	L3 = 'S',
+	L2 = 'D', 
+	L1 = 'F',
+	Space = 'Space',
+	R1 = 'H',
+	R2 = 'J',
+	R3 = 'K',
+	R4 = 'L'
+}
+
+if not nineKey or fiveKey then
+	RLToKey = {
+		L3 = 'S',
+		L2 = 'D', 
+		L1 = 'F',
+		Space = 'Space',
+		R1 = 'J',
+		R2 = 'K',
+		R3 = 'L'
+	}
+end
+
+
+if not nineKey and not sevenKey and not sixKey then
+	RLToKey = {
+		L2 = 'D', 
+		L1 = 'F',
+		Space = 'Space',
+		R1 = 'J',
+		R2 = 'K',
+	}
+end
+
+--// Create Animations
+_G.Animations = {}
+
+--local animswitching = songholder:FindFirstChild("AnimSwitching")
+local animations = _G.Animations --animswitching and _G.Animations or {}
+local p2animations = {}
+local anifold = if songholder:FindFirstChild(ui.PlayerSide.Value.."_Anims") then songholder[ui.PlayerSide.Value.."_Anims"].Value else game.ReplicatedStorage.Animations:FindFirstChild(player.Input.Animation.Value) or Util.findAnim(player.Input.Animation.Value) or game.ReplicatedStorage.Animations.Default
+local idletrack
+local p2idletrack
+
+local function loadAnimsFrom(folder, humanoid, P2)
+	if ui.PlayerSide.Value == "R" then folder = folder.Mirrored end
+
+	if P2 then
+		-- second playa
+		for _, obj in ipairs(folder:GetChildren()) do
+			if obj:IsA("Animation") then
+				p2animations[obj.Name] = humanoid:LoadAnimation(obj)
+			end
+		end
+		p2idletrack = p2animations["Idle"]
+	else
+		if not humanoid then humanoid = player.Character.Humanoid end
+
+		-- make folder if it doesn't exist
+		for _, obj in ipairs(folder:GetChildren()) do
+			if obj:IsA("Animation") then
+				animations[obj.Name] = humanoid:LoadAnimation(obj)
+			end
+		end
+		idletrack = animations["Idle"]
+	end
+end
+
+-- load the animations
+if anifold:FindFirstChild("Custom") then
+	loadAnimsFrom(anifold, player.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("Humanoid"))
+	--
+elseif anifold:FindFirstChild("FBX") then
+	loadAnimsFrom(anifold, player.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("AnimationController"):WaitForChild("Animator"))
+	--
+elseif anifold:FindFirstChild("2Player") then
+	loadAnimsFrom(anifold.Other, player.Character:WaitForChild("char2"):WaitForChild("Dummy"):WaitForChild("Humanoid"), true)
+	loadAnimsFrom(anifold, player.Character.Humanoid)
+	--
+elseif anifold:FindFirstChild("Custom2Player") then
+	loadAnimsFrom(anifold.Other, player.Character:WaitForChild("char2"):WaitForChild("Dummy"):WaitForChild("Humanoid"), true)
+	loadAnimsFrom(anifold, player.Character:WaitForChild("customrig"):WaitForChild("rig"):WaitForChild("Humanoid"))
+	--
+else
+	loadAnimsFrom(anifold)
+	--
+end
+
+local function moveCamera(note, oppositeSide)
+	if not player.Input.MoveOnHit.Value then return end
+	local side = ui.Side.Value
+	local bg = workspace.ClientBG:FindFirstChildOfClass("Model")
+	local modchartfile = (songholder:FindFirstChild("Modchart") and songholder.Modchart:IsA("ModuleScript")) and modchartsEnabled and require(songholder.Modchart)
+	if (modchartfile and modchartfile.OverrideCamera) then return end
+
+	local cpoint = (bg and bg:FindFirstChild("cameraPoints")) and bg.cameraPoints:FindFirstChild(side) or stage.CameraPoints:FindFirstChild(side) or stage.CameraPoints.C
+	if (ui.PlayerSide.Value == ui.Side.Value and not oppositeSide) or (ui.PlayerSide.Value ~= ui.Side.Value) and oppositeSide then
+		if note == "Up" then TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.MoveSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = cpoint.CFrame * CFrame.new(0, player.Input.MoveIntensity.value, 0)}):Play() end
+		if note == "Left" then TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.MoveSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = cpoint.CFrame  * CFrame.new(-player.Input.MoveIntensity.value, 0, 0)}):Play() end
+		if note == "Down" then TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.MoveSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = cpoint.CFrame  * CFrame.new(0, -player.Input.MoveIntensity.value, 0)}):Play() end
+		if note == "Right" then TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.MoveSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = cpoint.CFrame  * CFrame.new(player.Input.MoveIntensity.value, 0, 0)}):Play() end
+	end
+end
+
+--// note splash function
+local function noteSplash(note)
+	if specialSong and not SongNoteConvert then return end
+	if not player.Input.NoteSplashes.Value then return end
+	if not game.ReplicatedStorage.Misc.Splashes:FindFirstChild(note) then return end
+
 	task.spawn(function()
-		for v463, v464 in pairs((game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Unload"))) do
-			local v465 = v464[1];
-			local v466 = tonumber(v464[4]);
-			if v465 then
-				v465[v464[2]] = v466 and v466 or v464[3];
-			end;
-		end;
-	end);
-	u36:Stop();
-	l__Parent__3.GameMusic.Music:Stop();
-	l__Parent__3.GameMusic.Vocals:Stop();
-	for v467, v468 in pairs(l__Value__6.MusicPart:GetDescendants()) do
-		if v468:IsA("Sound") then
-			v468.Volume = 0;
-			v468.PlaybackSpeed = 1;
+		local plrSplashFolder = game.ReplicatedStorage.Splashes:FindFirstChild(player.Input.NoteSplashSkin.Value) or game.ReplicatedStorage.Splashes.Default
+		local splashes = game.ReplicatedStorage.Misc.Splashes[note]:GetChildren()
+		local splash = splashes[math.random(1,#splashes)]:Clone()
+		local notePos = side.Arrows[note].Position
+		splash.Parent = side.SplashContainer
+		splash.Position = notePos--UDim2.new(notePos.X.Scale, notePos.X.Offset, 0.075, notePos.Y.Offset)
+		splash.Image = plrSplashFolder.Splash.Value
+		splash.Size = UDim2.fromScale(player.Input.SplashSize.Value*splash.Size.X.Scale, player.Input.SplashSize.Value*splash.Size.Y.Scale)
+
+		local splashX = splash.ImageRectOffset.X
+		for i = 0,8 do splash.ImageRectOffset = Vector2.new(splashX,i*128); task.wait(0.035); end
+		splash:Destroy()
+	end)
+end
+
+local RNG = Random.new()
+
+--// hit indicator function
+local function hitIndicator(variant, ms)
+	if not player.Input.ShowRatings.Value then return end
+	local sideToGoIn = ms and side or (ui.PlayerSide.Value == "L" and main.R or main.L)
+	
+	local style = player.Input.RatingStyle.Value
+	
+	if style == "FNB" then
+		local deletethis = sideToGoIn:FindFirstChildOfClass("ImageLabel")
+		if deletethis then deletethis.Parent = nil end
+
+		local deletethistoo = sideToGoIn:FindFirstChildOfClass("TextLabel")
+		if deletethistoo then deletethistoo.Parent = nil end
+
+		local mult = player.Input.RatingSize.Value
+
+		local thing = game.ReplicatedStorage.Misc.IndicatorTemplate:Clone()
+		thing.Image = "rbxthumb://type=Asset&id="..player.Input[variant.."IndicatorImg"].Value.."&w=150&h=150" or stage.FlyingText.G["Template_"..variant].Image
+		thing.Parent = sideToGoIn
+		thing.Size = UDim2.new(0.25*mult,0,0.083*mult,0)
+		thing.ImageTransparency = 0
+		thing.Rotation = (main.Rotation >= 90) and 180 or 0
+		game:GetService("Debris"):AddItem(thing, 1.5)
+
+		if player.Input.CenterRatings.Value then
+			thing.Position = UDim2.new(0.5, 0,0.45, 0)
+		end
+
+		task.spawn(function()
+			if player.Input.RatingBounce.Value then
+				TS:Create(thing,TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0.3*mult,0,0.1*mult,0)}):Play()
+			end	
+			task.wait(0.1)
+			TS:Create(thing,TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.25*mult,0,0.083*mult,0)}):Play()
+			task.wait(0.5)
+			TS:Create(thing,TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 1}):Play()
+		end)
+
+		local miliseconds = game.ReplicatedStorage.Misc.miliseconds:Clone()
+		miliseconds.Visible = player.Input.ShowMS.Value
+		miliseconds.Parent = sideToGoIn
+		miliseconds.Size = UDim2.new(0.145*mult,0, 0.044*mult,0)
+		miliseconds.Rotation = (main.Rotation >= 90) and 180 or 0
+		miliseconds.Text = round(ms,2).." ms"
+		if ms < 0 then miliseconds.TextColor3 = Color3.fromRGB(255, 61, 61) else miliseconds.TextColor3 = Color3.fromRGB(120, 255, 124) end
+		game:GetService("Debris"):AddItem(miliseconds, 1.5)
+
+		if player.Input.CenterRatings.Value then
+			miliseconds.Position = UDim2.new(0.5, 0,0.36, 0)
+		end
+
+		task.spawn(function()
+			if player.Input.RatingBounce.Value then
+				TS:Create(miliseconds,TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0.165*mult,0,0.06*mult,0)}):Play()
+			end
+			task.wait(0.1)
+			TS:Create(miliseconds,TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.145*mult,0,0.044*mult,0)}):Play()
+			task.wait(0.5)
+			TS:Create(miliseconds,TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextTransparency = 1}):Play()
+			TS:Create(miliseconds,TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextStrokeTransparency = 1}):Play()
+		end)
+	elseif style == "FNF" then
+		local mult = player.Input.RatingSize.Value
+
+		local thing = game.ReplicatedStorage.Misc.IndicatorTemplate:Clone()
+		thing.Image = "rbxthumb://type=Asset&id="..player.Input[variant.."IndicatorImg"].Value.."&w=150&h=150" or stage.FlyingText.G["Template_"..variant].Image
+		thing.Parent = sideToGoIn
+		thing.Size = UDim2.new(0.25*mult,0,0.083*mult,0)
+		thing.ImageTransparency = 0
+		thing.Rotation = (main.Rotation >= 90) and 180 or 0
+		
+		if (player.Input.Downscroll.Value) then
+			thing:SetAttribute("Acceleration",Vector2.new(0,-550))
+			thing:SetAttribute("Velocity",Vector2.new(RNG:NextInteger(0,10),RNG:NextInteger(140,175)))
 		else
-			v468:Destroy();
-		end;
-	end;
-	l__Value__6.P1Board.G.Enabled = true;
-	l__Value__6.P2Board.G.Enabled = true;
-	l__Value__6.SongInfo.G.Enabled = true;
-	l__Value__6.SongInfo.P1Icon.G.Enabled = true;
-	l__Value__6.SongInfo.P2Icon.G.Enabled = true;
-	l__Value__6.FlyingText.G.Enabled = true;
-	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true);
-	l__Parent__3.Parent.Enabled = false;
-	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom;
-	if l__LocalPlayer__2.Character and l__LocalPlayer__2.Character:FindFirstChild("Humanoid") then
-		workspace.CurrentCamera.CameraSubject = l__LocalPlayer__2.Character.Humanoid;
-		l__LocalPlayer__2.Character.Humanoid.WalkSpeed = 16;
-	end;
-end;
-local function u85(p70)
-	local v469 = l__Value__6.Config.Player1.Value == l__LocalPlayer__2 and l__Value__6.Config.P1Points.Value or l__Value__6.Config.P2Points.Value;
-	if u46 and u46.OnSongEnd then
-		local u86 = 0;
-		table.foreach(u1, function(p71, p72)
-			u86 = u86 + p72;
-		end);
-		u46.OnSongEnd(l__Parent__3, { u86 / #u1, v469 });
-	end;
-	if not l__LocalPlayer__2.Input.ShowEndScreen.Value then
-		return;
-	end;
-	if v89.Parent.Parent.Parent.Name == "Songs" and v89:IsA("ModuleScript") then
-		local v470 = v89.Parent.Name;
+			thing:SetAttribute("Acceleration",Vector2.new(0,550))
+			thing:SetAttribute("Velocity",Vector2.new(RNG:NextInteger(0,10),-RNG:NextInteger(140,175)))
+		end
+		
+		if player.Input.CenterRatings.Value then
+			thing.Position = UDim2.new(0.5, 0,0.45, 0)
+		end
+		
+		table.insert(ratingLabels,thing)
+	
+		local tw = game:service'TweenService':Create(thing,TweenInfo.new(.2,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,Conductor.crochet*0.001),{ImageTransparency = 1})
+		tw:Play()
+		tw.Completed:connect(function()
+			thing:destroy()
+			pcall(game.Destroy,tw)
+		end)
+		
+		local miliseconds = game.ReplicatedStorage.Misc.miliseconds:Clone()
+		miliseconds.Visible = player.Input.ShowMS.Value
+		miliseconds.Parent = sideToGoIn
+		miliseconds.Size = UDim2.new(0.145*mult,0, 0.044*mult,0)
+		miliseconds.Rotation = (main.Rotation >= 90) and 180 or 0
+		miliseconds.Text = round(ms,2).." ms"
+		
+		if ms < 0 then miliseconds.TextColor3 = Color3.fromRGB(255, 61, 61) else miliseconds.TextColor3 = Color3.fromRGB(120, 255, 124) end
+		
+		if (player.Input.Downscroll.Value) then
+			miliseconds:SetAttribute("Acceleration",Vector2.new(0,-550))
+			miliseconds:SetAttribute("Velocity",Vector2.new(RNG:NextInteger(0,10),RNG:NextInteger(140,175)))
+		else
+			miliseconds:SetAttribute("Acceleration",Vector2.new(0,550))
+			miliseconds:SetAttribute("Velocity",Vector2.new(RNG:NextInteger(0,10),-RNG:NextInteger(140,175)))
+		end
+		
+		table.insert(ratingLabels,miliseconds)
+
+		if player.Input.CenterRatings.Value then
+			miliseconds.Position = UDim2.new(0.5, 0,0.36, 0)
+		end
+		
+		local tw2 = game:service'TweenService':Create(miliseconds,TweenInfo.new(.2,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,Conductor.crochet*0.001),{TextTransparency = 1, TextStrokeTransparency = 1})
+		tw2:Play()
+		tw2.Completed:connect(function()
+			miliseconds:destroy()
+			pcall(game.Destroy,tw2)
+		end)
+	end
+
+	if not ms then
+		ms = variant
+		if ms <= TimingWindowStuff["Marvelous"] and player.Input.ShowMarvelous.Value then 
+			variant = "Marvelous"
+		elseif ms <= TimingWindowStuff["Sick"] then 
+			variant = "Sick"
+		elseif ms <= TimingWindowStuff["Good"] then
+			variant = "Good"
+		elseif ms <= TimingWindowStuff["Ok"] then
+			variant = "Ok"
+		elseif ms <= TimingWindowStuff["Bad"] then
+			variant = "Bad"
+		end
+	end
+end
+
+--// Animations
+
+local oldtrack
+local p2oldtrack
+local currentAnimationNumber = 0
+
+local function animate(key)
+	local direction = key
+	if specialSong then
+		if nineKey then
+			if direction == "A" or direction == "H" then direction = "Left" end
+			if direction == "S" or direction == "J" then direction = "Down" end
+			if direction == "D" or direction == "K" or direction == "Space" then direction = "Up" end
+			if direction == "F" or direction == "L" then direction = "Right" end
+		elseif sixKey or sevenKey then
+			if direction == "S" or direction == "J" then direction = "Left" end
+			if direction == "D" or direction == "Space" then direction = "Up" end
+			if direction == "K" then direction = "Down" end
+			if direction == "F" or direction == "L" then direction = "Right" end
+		elseif fiveKey then
+			if direction == "D" then direction = "Left" end
+			if direction == "F" or direction == "Space" then direction = "Up" end
+			if direction == "J" then direction = "Down" end
+			if direction == "K" then direction = "Right" end
+		elseif SongNoteConvert and SongNoteConvert.getAnimationDirection then
+			direction = SongNoteConvert.getAnimationDirection(direction)
+		end
+	end
+
+	if anifold:FindFirstChild(direction) then
+		local correctedDirection = (side.Name == 'L' and direction or (if direction == 'Right' then 'Left' else if direction == 'Left' then 'Right' else direction))
+
+		local literalanimation = anifold[correctedDirection]
+		local track = _G.Animations[correctedDirection] --animswitching and _G.Animations[correctedDirection] or animations[correctedDirection]
+		track.Looped = false
+		track.TimePosition = 0
+		track.Priority = Enum.AnimationPriority.Movement --// set to Action if things break
+
+		if oldtrack and oldtrack ~= track then 
+			oldtrack:Stop(0) 
+		end
+		oldtrack = track
+
+		local p2track = p2animations[correctedDirection]
+
+		if p2track then
+			local p2literalanimation = anifold.Other[correctedDirection]
+			p2track.Looped = false
+			p2track.TimePosition = 0
+			p2track.Priority = Enum.AnimationPriority.Movement --// set to Action if things break
+
+			if p2oldtrack and p2oldtrack ~= p2track then 
+				p2oldtrack:Stop(0) 
+			end
+			p2oldtrack = p2track
+		end
+
+		task.spawn(function()
+			local length = (track.Length) - 0.15
+			currentAnimationNumber += 1
+			local num = currentAnimationNumber
+			while myKeysDown[key] and (currentAnimationNumber == num) do
+				track:Play(0)
+
+				if p2track then
+					p2track:Play(0)
+				end
+				
+				for i, icon in iconData do
+					if typeof(icon) == "string" then continue end
+					if (i == 1 and side.Name == 'R') then continue end
+					if (i == 2 and side.Name == 'L') then continue end
+					
+					local a = nil
+					if icon.Animations then
+						for key, anim in icon.Animations do
+							if key == correctedDirection then
+								a = anim
+								break
+							end
+						end
+					end
+					
+					if a then
+						icon:PlayAnimation(correctedDirection)
+					end
+				end
+
+				task.wait(0.1)
+			end
+
+			task.wait(length)
+			if num == currentAnimationNumber then 
+				track:Stop(0) 
+				
+				for i, icon in iconData do
+					if typeof(icon) == "string" then continue end
+					if (i == 1 and side.Name == 'R') then continue end
+					if (i == 2 and side.Name == 'L') then continue end
+
+					icon:PlayAnimation("Neutral")
+				end
+				
+				--track:AdjustWeight(0)
+				if (ui.Side.Value == ui.PlayerSide.Value) and (player.Input.MoveOnHit.Value) then
+					local side = ui.Side.Value
+					local bg = workspace.ClientBG:FindFirstChildOfClass("Model")
+					local cpoint = (bg and bg:FindFirstChild("cameraPoints")) and bg.cameraPoints:FindFirstChild(side) or stage.CameraPoints:FindFirstChild(side) or stage.CameraPoints.C
+					local modchartfile = (songholder:FindFirstChild("Modchart") and songholder.Modchart:IsA("ModuleScript")) and modchartsEnabled and require(songholder.Modchart)
+					if modchartfile and modchartfile.CameraReset then 
+						modchartfile.CameraReset()	
+					end
+
+					if modchartfile and modchartfile.OverrideCamera then return end
+
+					TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.MoveSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = cpoint.CFrame}):Play()
+				end
+
+				if p2track then
+					p2track:Stop(0)
+				end
+			end
+
+		end)
+	end
+end
+
+--// set song speed
+if not tonumber(song.speed) then song.speed = 2.8 end
+local origSongSpeed = song.speed
+song.speed = (player.Input.ScrollSpeedChange.Value) and (player.Input.ScrollSpeed.Value+1.5) or (song.speed or 3.3)
+
+if specialSong then
+	local mult = 1/4
+	if fiveKey then
+		mult = 1/4.02
+	elseif sixKey then
+		mult = 1/4.04
+	elseif sevenKey then
+		mult = 1/4.24
+	elseif nineKey then
+		mult = 1/4.36
+	end
+	song.speed = song.speed / (0.25/mult)
+end
+
+if p2idletrack then
+	p2idletrack:AdjustSpeed(song.speed)
+	idletrack:AdjustSpeed(song.speed)
+	p2idletrack.Looped = true
+	idletrack.Looped = true
+	p2idletrack.Priority = Enum.AnimationPriority.Idle
+	idletrack.Priority = Enum.AnimationPriority.Idle
+	idletrack:Play()
+	p2idletrack:Play()
+else
+	idletrack:AdjustSpeed(song.speed)
+	idletrack.Looped = true
+	idletrack.Priority = Enum.AnimationPriority.Idle
+	idletrack:Play()
+end
+
+local maxdist = 0.75 * song.speed
+config.MaxDist.Value = maxdist
+
+local modchartfile = (songholder:FindFirstChild("Modchart") and songholder.Modchart:IsA("ModuleScript")) and modchartsEnabled and require(songholder.Modchart)
+
+--// hit sound
+
+local hitSound = Instance.new("Sound")
+hitSound.Name = "HitSound"
+hitSound.Parent = ui
+hitSound.SoundId = "rbxassetid://"..player.Input.HitSoundsValue.Value or "rbxassetid://3581383408"
+hitSound.Volume = player.Input.HitSoundVolume.Value
+
+local function ghostcheck(direction)
+	local hit = nil
+	for _, arrow in ipairs(side.Arrows.IncomingNotes[direction]:GetChildren()) do
+		if arrow.Name == direction or string.split(arrow.Name, "_")[1] == direction then
+			local dist = math.abs(string.split(arrow:GetAttribute("NoteData"), "~")[1] - (Util.tomilseconds(config.TimePast.Value) + offset))
+			if dist <= TimingWindowStuff["Ghost"] and arrow.Frame.Arrow.Visible then
+				if not hit then
+					hit = arrow
+				else
+					if (arrow.AbsolutePosition - arrow.Parent.AbsolutePosition).magnitude <= (hit.AbsolutePosition - arrow.Parent.AbsolutePosition).magnitude then
+						hit = arrow
+					end
+				end
+			end
+		end
+	end
+	if not hit then return true end
+end
+
+local function onclosesthit(input, direction, opponentData, oppositeSide, oppositeSideMiliseconds)
+	if not direction then
+		return
+	end
+
+	--task.spawn(function()
+	--	repeat wait() until input.UserInputState == Enum.UserInputState.End
+	--	print('End!')
+	--end)
+
+	-- wrapper
+	--if typeof(input) == 'EnumItem' then
+	--	input = {UserInputState = input}
+	--end
+
+	if oppositeSide then
+		otherplayerKeyDown[direction] = input.UserInputState == Enum.UserInputState.Begin and true or false
+		oppositeSide = main:FindFirstChild(ui.PlayerSide.Value == "L" and "R" or "L")
+	end
+
+	if not oppositeSide then
+		myKeysDown[direction] = (input.UserInputState == Enum.UserInputState.Begin) and true or false
+	end
+
+	if config.CantHitNotes.Value then return end
+	if not specialSong and config.DisabledLanes[direction].Value then return end
+
+	local InputType = hasGimmickNotes == true and "Bloxxin" or player.Input.InputType.Value
+	local hit = nil
+
+	--// Find Hit
+	if (not myKeysDown[direction]) and (input.UserInputState ~= Enum.UserInputState.Begin) then return end
+	if not side.Arrows.IncomingNotes:FindFirstChild(direction) then return end
+
+	for _, arrow in ipairs((oppositeSide or side).Arrows.IncomingNotes[direction]:GetChildren()) do
+		if arrow.Name == direction or string.split(arrow.Name, "_")[1] == direction then
+			local noteData = arrow:GetAttribute("NoteData")
+			local dist = string.split(noteData, "~")[1] - (Util.tomilseconds(config.TimePast.Value) + offset)
+
+			if not oppositeSide then
+				if arrow.Frame.Arrow.Visible and not arrow.Frame.Arrow:GetAttribute("hit") and math.abs(dist) <= TimingWindowStuff["Bad"] then
+					if not hit then
+						hit = arrow
+					else
+						if InputType == "Bloxxin" then
+							if (arrow.AbsolutePosition - arrow.Parent.AbsolutePosition).magnitude <= (hit.AbsolutePosition - arrow.Parent.AbsolutePosition).magnitude then
+								hit = arrow
+							end
+						else
+							local hitDist = string.split(noteData, "~")[1] - (Util.tomilseconds(config.TimePast.Value) + offset)
+							if dist < hitDist then
+								hit = arrow
+							end
+						end
+					end
+				end
+			else
+				if noteData == opponentData then
+					hit = arrow
+					break
+				end
+			end
+		end
+	end
+
+	--print('Checked for arrows')
+
+	if config.GhostTappingEnabled.Value and not hit and not oppositeSide then
+		if ghostcheck(direction) then
+			hit = "ghost"
+		end
+	end
+
+	--print(input.UserInputState)
+
+	--print('Hi')
+
+	--// Animate
+
+	local glowtime = 0.175
+	local fakehit = modchartfile and modchartfile.FakeHit
+	
+	if not oppositeSide then
+
+		---------------------------------------- Overlay and animation
+
+		animate(direction)
+
+		---------------------------------------- Handle hits
+		if hit and hit ~= 'ghost' then
+			--// ghost tapping smh
+
+			--if hit == "ghost" then
+
+			--	----// lots of notes are in 6k & 9k songs, so we need to have a custom value set.. >_<
+			--	--local size = 1*player.Input.ArrowSize.Value+0.3
+
+			--	--if sixKey then size = 1 end
+			--	--if sevenKey or nineKey then size = 0.5 end
+			--	--if SongNoteConvert and SongNoteConvert.newKeys then size = 1 end
+
+			--	--local tween = TS:Create(arrow,TweenInfo.new(0.05,Enum.EasingStyle.Linear,Enum.EasingDirection.In,0,false,0),
+			--	--	{Size=UDim2.new(size/1.1,0,size/1.1,0)})
+			--	--tween:Play()
+			--	--repeat 
+			--	--	Util.wait()
+			--	--	if input.UserInputState == Enum.UserInputState.End then 
+			--	--		myKeysDown[direction] = false
+			--	--	end
+			--	--until not myKeysDown[direction]
+			--	--TS:Create(arrow,TweenInfo.new(0.05,Enum.EasingStyle.Quint,Enum.EasingDirection.Out,0,false,0),
+			--	--	{Size=UDim2.new(size,0,size,0)}):Play()
+
+			--	--arrow.Overlay.Visible = false
+			--	--return
+			--else
+			if hit:FindFirstChild("HitSound") then
+				Util.PlaySound(hit.HitSound.Value,hit.HitSound.parent,2.25)
+			elseif player.Input.HitSounds.Value == true then
+				Util.PlaySound(hitSound)
+			end
+
+			local miliseconds = string.split(hit:GetAttribute("NoteData"), "~")[1] - (Util.tomilseconds(config.TimePast.Value) + offset)
+			local DIST = math.abs(miliseconds)
+			local hitName = string.split(hit.Name, "_")[1]
+
+			if DIST <= TimingWindowStuff["Sick"] then
+				noteSplash(hitName)
+			end
+
+			if player.Input.ScoreBop.Value then
+				if player.Input.VerticalBar.Value then
+					for i,v in pairs(ui.SideContainer:GetChildren()) do
+						if v.ClassName ~= "TextLabel" then continue end
+						v.Size = UDim2.new(originalTextSize[v.Name].X.Scale * 1.1, 0,originalTextSize[v.Name].Y.Scale * 1.1, 0)
+						TS:Create(v, TweenInfo.new(0.3), {Size = originalTextSize[v.Name]}):Play()
+					end
+				else
+					ui.LowerContainer.Stats.Size = UDim2.new(originalTextSize["Stats"].X.Scale * 1.1, 0,originalTextSize["Stats"].Y.Scale * 1.1, 0)
+					TS:Create(ui.LowerContainer.Stats, TweenInfo.new(0.3), {Size = originalTextSize["Stats"]}):Play()
+				end
+			end
+
+			moveCamera(hitName)
+
+			--table.insert(accuracy, 1, (1.2 - math.abs(hit.Position.Y.Scale)) / 1.2 * 100)
+			combo += 1
+			updateStats()
+			if modchartfile and modchartfile.UpdateStats then
+				modchartfile.UpdateStats(ui)
+			end
+			
+			if modchartfile and modchartfile.OnHit then
+				modchartfile.OnHit(ui, highcombo, combo, hitName, actualAccuracy, direction)
+			end
+
+			userinput:FireServer(
+				hit, direction .. "|0|" .. Util.tomilseconds(config.TimePast.Value) + offset .. "|" .. hit.Position.Y.Scale .. "|" .. hit:GetAttribute("NoteData") .. "|" .. hit.Name  .. "|" .. hit:GetAttribute("Length") ..  "|" .. tostring(hit.HellNote.Value == false and "0" or "1"))
+
+			table.insert(hitGraph,{
+				["ms"] = miliseconds,
+				["songPos"] = ui.Config.TimePast.Value,
+				["miss"] = false
+			})
+
+			table.insert(npsData,{
+				["time"] = tonumber(string.split(hit:GetAttribute("NoteData"), "~")[1])
+			})
+			
+			if (fakehit)  then
+				hit.Frame.Arrow:SetAttribute("hit",true)
+			else
+				hit.Frame.Arrow.Visible = false
+			end
+			
+			if not myKeysDown[direction] then return end
+
+			side.Glow[direction].Arrow.ImageTransparency = 1
+			if SongNoteConvert and SongNoteConvert.Glow then
+				SongNoteConvert.Glow(direction,true)
+			else
+				side.Glow[direction].Arrow.Visible = true
+			end
+
+			if side.Glow[direction].Arrow.ImageTransparency == 1 then
+				local done = false
+
+				if not player.Input.DisableArrowGlow.Value and not AnimatedReceptors[side.Name][direction] then
+					local c c = RUNS.RenderStepped:Connect(function()
+						if done then 
+							c:Disconnect()
+							side.Glow[direction].Arrow.ImageTransparency = 1
+							return
+						end
+						side.Glow[direction].Arrow.ImageTransparency = (0.2 - math.cos(tick() * 10 * math.pi) / 6) + (side.Arrows[direction].ImageTransparency / 1.25)
+					end)
+				elseif not player.Input.DisableArrowGlow.Value and AnimatedReceptors[side.Name][direction] then
+					if done then 
+						c:Disconnect()
+						AnimatedReceptors[side.Name][direction]:PlayAnimation("Receptor")
+						return
+					end
+					AnimatedReceptors[side.Name][direction]:PlayAnimation("Glow")
+				end
+
+				local bary = hit.Frame.Bar.Size.Y.Scale
+
+				if bary > 0 then --// check for a hold note
+					local hellnote = hit.HellNote.Value
+					--miliseconds = (string.split(hit:GetAttribute("NoteData"), "~")[1] + hit:GetAttribute("SustainLength")) - (Util.tomilseconds(config.TimePast.Value) + offset)
+					DIST = math.abs(miliseconds)
+					
+					
+					repeat 
+						task.wait()
+						local y = hit.Position.Y.Scale
+						if specialSong then
+							local mult = 1/4
+							if fiveKey then
+								mult = 1/4.02
+							elseif sixKey then
+								mult = 1/4.04
+							elseif sevenKey then
+								mult = 1/4.24
+							elseif nineKey then
+								mult = 1/4.36
+							end
+							y = y * (0.25/mult)
+						end
+						if y < 0 and hit:FindFirstChild("Frame") then
+							if (fakehit)  then
+								-- nothing
+							else
+								hit.Frame.Bar.Size = UDim2.new(player.Input.BarSize.Value, 0, math.clamp(bary + y, 0, 20), 0)
+								hit.Frame.Bar.Position = UDim2.new(0.5,0,0.5 - y,0)
+							end
+						end
+						--if input.UserInputState == Enum.UserInputState.End then 
+						--	myKeysDown[direction] = false
+						--end
+					until not myKeysDown[direction]
+					userinput:FireServer(
+						hit, direction .. "|1|" .. Util.tomilseconds(config.TimePast.Value) + offset .. "|" .. hit.Position.Y.Scale .. "|" .. hit:GetAttribute("NoteData") .. "|" .. hit.Name  .. "|" .. hit:GetAttribute("Length") ..  "|" .. tostring(hellnote == false and "0" or "1"))
+
+					local percentwithin = math.clamp(math.abs(hit.Position.Y.Scale) / hit:GetAttribute("Length"), 0, 1)
+					local dist = 1 - percentwithin
+					local realDist = DIST + (hit:GetAttribute("SustainLength")*dist)
+
+					if dist <= maxdist/10 then
+						hitIndicator((DIST <= TimingWindowStuff["Marvelous"] and player.Input.ShowMarvelous.Value) and "Marvelous" or "Sick", miliseconds)
+						table.insert(accuracy, 1, 100)
+						if (DIST <= TimingWindowStuff["Marvelous"] and player.Input.ShowMarvelous.Value) then
+							marv += 1
+						else	
+							sick += 1
+						end
+					elseif dist <= maxdist/6 then
+						hitIndicator("Good", miliseconds)
+						table.insert(accuracy, 1, 90)
+						good += 1
+						if ui:GetAttribute("Perfect") then player.Character.Humanoid.Health = 0 end
+					elseif dist <= maxdist then
+						hitIndicator("Bad", miliseconds)
+						table.insert(accuracy, 1, 60)
+						bad += 1
+						if ui:GetAttribute("Perfect") then player.Character.Humanoid.Health = 0 end
+					end; 
+					updateStats()
+					if modchartfile and modchartfile.UpdateStats then
+						modchartfile.UpdateStats(ui)
+					end
+					
+					if (fakehit) then
+						--nothing
+					else
+						hit.Visible = false
+					end
+				else
+					local scale = 1
+
+					-- hitboxes smaller for hell notes, all of em
+					if hit.HellNote.Value ~= false then
+						--scale = 0.5
+					end
+
+					if DIST <= TimingWindowStuff["Marvelous"] * scale and player.Input.ShowMarvelous.Value then
+						hitIndicator("Marvelous", miliseconds)
+						table.insert(accuracy, 1, 100)
+						marv += 1
+					elseif DIST <= TimingWindowStuff["Sick"] * scale then
+						hitIndicator("Sick", miliseconds)
+						table.insert(accuracy, 1, 100)
+						sick += 1
+					elseif DIST <= TimingWindowStuff["Good"] * scale then
+						hitIndicator("Good", miliseconds)
+						table.insert(accuracy, 1, 90)
+						good += 1
+						if ui:GetAttribute("Perfect") then player.Character.Humanoid.Health = 0 end
+					elseif DIST <= TimingWindowStuff["Ok"] * scale then
+						hitIndicator("Ok", miliseconds)
+						table.insert(accuracy, 1, 75)
+						ok += 1
+						if ui:GetAttribute("Perfect") then player.Character.Humanoid.Health = 0 end
+					elseif DIST <= TimingWindowStuff["Bad"] * scale then
+						hitIndicator("Bad", miliseconds)
+						table.insert(accuracy, 1, 60)
+						bad += 1
+						if ui:GetAttribute("Perfect") then player.Character.Humanoid.Health = 0 end
+					end; 
+					updateStats()
+					if modchartfile and modchartfile.UpdateStats then
+						modchartfile.UpdateStats(ui)
+					end
+
+					repeat 
+						Util.wait()
+						--if input.UserInputState == Enum.UserInputState.End then 
+						--	myKeysDown[direction] = false
+						--end
+					until not myKeysDown[direction]
+					if (fakehit) then
+						-- nothing
+					else
+						hit.Visible = false
+					end
+				end
+
+				done = true
+			end
+			
+			if SongNoteConvert and SongNoteConvert.Glow then
+				SongNoteConvert.Glow(direction,false)
+			else
+				side.Glow[direction].Arrow.Visible = false
+			end
+		end
+
+		---------- Wrap up
+
+		if not myKeysDown[direction] then return end
+
+
+		--print(hit)
+		--pcall(function()
+		--	print(hit:GetFullName())
+		--end)
+
+		if hit ~= 'ghost' then
+			--print('What')
+			--print(hit)
+			userinput:FireServer(
+				"missed", direction .. "|" .. "0")
+
+			table.insert(accuracy, 1, 0)
+			misses += 1
+			combo = 0
+			updateStats()
+			if modchartfile and modchartfile.UpdateStats then
+				modchartfile.UpdateStats(ui)
+			end
+
+			table.insert(hitGraph,{
+				["ms"] = 0,
+				["songPos"] = ui.Config.TimePast.Value,
+				["miss"] = true
+			})
+
+			--// modchart stuff
+			if modchartfile and modchartfile.OnMiss then
+				modchartfile.OnMiss(ui, misses, actualAccuracy, direction)
+			end
+
+			--// sudden death modifier
+			if ui:GetAttribute("SuddenDeath") and config.TimePast.Value > 5
+			then player.Character.Humanoid.Health = 0 end
+
+			--// Deprecated Note Miss Sound
+
+			local miss = ui.Sounds:GetChildren()[math.random(1,#ui.Sounds:GetChildren())]:Clone()
+			miss.Name = "MissSound"
+			miss.Parent = ui
+			miss.Volume = player.Input.MissVolume.Value or 0.3
+			
+			if player.Input.MissSoundValue.Value ~= 0 then
+				miss.SoundId = "rbxassetid://"..player.Input.MissSoundValue.Value
+			end
+			miss:Play()
+			
+			--// Custom Miss Sound
+
+			--[[local miss = Instance.new("Sound")
+			miss.Name = "MissSound"
+			miss.Parent = ui.Temp
+			miss.SoundId = player.Input.MissSoundValue.Value > 0 and "rbxassetid://"..player.Input.MissSoundValue.Value or ui.Sounds:GetChildren()[math.random(1,#ui.Sounds:GetChildren())].SoundId
+			miss.Volume = player.Input.MissVolume.Value or 0.3
+			miss:Play()]]
+		end
+
+		--// Overlay
+		local arrow = side.Arrows[direction]
+		myKeysDown[direction] = true
+		if AnimatedReceptors[side.Name][direction] then
+			AnimatedReceptors[side.Name][direction]:PlayAnimation("Press")
+		else
+			if arrow:FindFirstChild("Overlay") then
+				arrow.Overlay.Visible = true
+			else
+				SongNoteConvert.Pressed(direction,true,ui)
+			end
+		end
+
+		local size = 1
+		
+		if sevenKey then size = 0.85 end
+		if nineKey then size = 0.7 end
+		if SongNoteConvert then size = SongNoteConvert.CustomArrowSize or 1 end
+		
+		size = size * player.Input.ArrowSize.Value
+
+		TS:Create(arrow,TweenInfo.new(0.05,Enum.EasingStyle.Linear,Enum.EasingDirection.In,0,false,0),
+			{Size = hit=='ghost' and UDim2.new(size/1.05,0,size/1.05,0) or UDim2.new(size/1.25,0,size/1.25,0)}):Play()
+		--tween:Play()
+
+		repeat 
+			task.wait()
+		until not myKeysDown[direction]
+
+		if AnimatedReceptors[side.Name][direction] then
+			AnimatedReceptors[side.Name][direction]:PlayAnimation("Receptor")
+		else
+			if arrow:FindFirstChild("Overlay") then
+				arrow.Overlay.Visible = false
+			else
+				SongNoteConvert.Pressed(direction,false,ui)
+			end
+		end
+
+		TS:Create(arrow,TweenInfo.new(0.05,Enum.EasingStyle.Quint,Enum.EasingDirection.Out,0,false,0),
+			{Size=UDim2.new(size,0,size,0)}):Play()
+
+		----------------------------------- Opposite side hit
+	elseif hit then	
+		moveCamera(direction, true)
+
+		local side = oppositeSide
+		
+		if (fakehit)  then
+			hit.Frame.Arrow:SetAttribute("hit",true)
+		else
+			hit.Frame.Arrow.Visible = false
+		end
+		if input.UserInputState ~= Enum.UserInputState.Begin then return end
+
+		side.Glow[direction].Arrow.ImageTransparency = 1
+		if SongNoteConvert and SongNoteConvert.Glow then
+			SongNoteConvert.Glow(direction,true)
+		else
+			side.Glow[direction].Arrow.Visible = true
+		end
+		
+		if side.Glow[direction].Arrow.ImageTransparency == 1 then
+			local done = false
+
+			if not player.Input.DisableArrowGlow.Value and not AnimatedReceptors[side.Name][direction] then
+				local c c = RUNS.RenderStepped:Connect(function()
+					if done then 
+						c:Disconnect()
+						side.Glow[direction].Arrow.ImageTransparency = 1
+						return
+					end
+					side.Glow[direction].Arrow.ImageTransparency = 0.2 - math.cos(tick() * 10 * math.pi) / 6
+				end)
+			elseif not player.Input.DisableArrowGlow.Value and AnimatedReceptors[side.Name][direction] then
+				if done then 
+					c:Disconnect()
+					AnimatedReceptors[side.Name][direction]:PlayAnimation("Receptor")
+					return
+				end
+				AnimatedReceptors[side.Name][direction]:PlayAnimation("Glow")
+			end
+			
+			local bary = hit.Frame.Bar.Size.Y.Scale
+			if bary > 0 then
+				--// Check Arrow Y Under 0
+				local start = tick()
+				repeat
+					Util.wait()
+					local y = hit.Position.Y.Scale
+					if specialSong then
+						local mult = 1/4
+						if fiveKey then
+							mult = 1/4.02
+						elseif sixKey then
+							mult = 1/4.04
+						elseif sevenKey then
+							mult = 1/4.24
+						elseif nineKey then
+							mult = 1/4.36
+						end
+						y = y * (0.25/mult)
+					end
+					if y < 0 then
+						if (fakehit) then
+							-- nah
+						else
+							hit.Frame.Bar.Size = UDim2.new(player.Input.BarSize.Value, 0, math.clamp(bary + y, 0, 20), 0)
+							hit.Frame.Bar.Position = UDim2.new(0.5,0,0.5 - y,0)
+						end
+					end
+				until not otherplayerKeyDown[direction] or hit.Frame.Bar.Size.Y.Scale == 0 or tick() - start > 7.5 -- if more than 7.5 seconds, turn off glowing arrow. this is just incase something goes wrong.
+			else
+				Util.wait(glowtime)
+			end
+
+			done = true
+		end
+		
+		if SongNoteConvert and SongNoteConvert.Glow then
+			SongNoteConvert.Glow(direction,false)
+		else
+			side.Glow[direction].Arrow.Visible = false
+		end
+
+		if modchartfile and modchartfile.OpponentHit then
+			modchartfile.OpponentHit(ui, direction)
+		end
+		--// hitIndicator(oppositeSideMiliseconds)
+	end
+end
+
+local inputconnection, inputconnection2, oplrhitconnection --// hi
+
+local lastInputType = _G.LastInput.Value
+
+if lastInputType == Enum.UserInputType.Touch then
+	script.Device.Value = "Mobile"
+	Util.wait(.2)
+
+	-- handle mobile input
+	--local MobileKeysHeld = {}
+
+	--for _, button in ipairs(ui.MobileButtons.Container:GetChildren()) do
+	--	if button:IsA("ImageButton") then
+
+	--	end
+	--end
+
+	for _, button in ipairs(ui.MobileButtons.Container:GetChildren()) do
+		if button:IsA("ImageButton") then
+			button.MouseButton1Down:Connect(function()
+				--print('Button down', button.Name)
+				onclosesthit({UserInputState = Enum.UserInputState.Begin}, button.Name)
+			end)
+			button.MouseButton1Up:Connect(function()
+				--print('Button up', button.Name)
+				onclosesthit({UserInputState = Enum.UserInputState.End}, button.Name)
+			end)
+		end
+	end
+	script.Parent.MobileButtons.Visible = true
+elseif lastInputType == Enum.UserInputType.Keyboard then
+	script.Device.Value = "Computer"
+
+	local function inputFunction(input, typing)
+		if typing then return end
+		local SetKeybinds = player.Input.Keybinds
+		if SongNoteConvert and SongNoteConvert.getDirection then
+			-- if special song bind
+			local direction = SongNoteConvert.getDirection(input.KeyCode, SetKeybinds)
+			if direction then 
+				onclosesthit(input, direction)
+			end
+		elseif specialSong then
+			-- 6k+ binds
+			for _, setting: StringValue in ipairs(SetKeybinds:GetChildren()) do
+				if (setting:GetAttribute('ExtraKey')) and (input.KeyCode.Name == setting.Value) then
+					onclosesthit(input, RLToKey[setting.Name])
+					break
+				end
+			end
+		else
+			-- normal key binds
+			for _, setting: StringValue in ipairs(SetKeybinds:GetChildren()) do
+				if (not setting:GetAttribute('ExtraKey')) and (input.KeyCode.Name == setting.Value or (setting:GetAttribute("SecondaryKey") and input.KeyCode.Name == setting:GetAttribute("Key"))) then
+					local direction = setting.Name
+					if (setting:GetAttribute("SecondaryKey")) then direction = setting:GetAttribute("Key") end
+					--print("Hey angus "..tostring(direction)..", and this is a secondary: "..tostring(setting:GetAttribute("SecondaryKey") and "true" or "false"))
+					onclosesthit(input, setting:GetAttribute("SecondaryKey") and setting:GetAttribute("Key") or setting.Name)
+					break
+				end
+			end
+		end
+	end
+
+	inputconnection = UIS.InputBegan:connect(inputFunction)
+	inputconnection2 = UIS.InputEnded:connect(inputFunction)
+elseif lastInputType == Enum.UserInputType.Gamepad1 then
+	script.Device.Value = "Controller"
+
+	local function inputFunction(input, typing)
+
+		--print('Hit', input.KeyCode)
+
+		local SetKeybinds = player.Input.XBOXKeybinds
+
+		-- if special song bind
+		if SongNoteConvert and SongNoteConvert.getDirection then
+			local direction = SongNoteConvert.getDirection(input.KeyCode, SetKeybinds)
+			if direction then 
+				onclosesthit(input, direction)
+			end
+		elseif specialSong then
+
+			-- 6k+ binds
+			for _, setting: StringValue in ipairs(SetKeybinds:GetChildren()) do
+				if (setting:GetAttribute('ExtraKey')) and (input.KeyCode.Name == setting.Value) then
+					onclosesthit(input, RLToKey[setting.Name:sub(12, -1)])
+					break
+				end
+			end
+		else
+			-- normal key binds
+			for _, setting: StringValue in ipairs(SetKeybinds:GetChildren()) do
+				if (not setting:GetAttribute('ExtraKey')) and (input.KeyCode.Name == setting.Value) then
+					onclosesthit(input, setting.Name:sub(12, -1))
+					--print('Hit', setting.Name:sub(6, -1))
+					break
+				end
+			end
+		end
+	end
+
+	inputconnection = UIS.InputBegan:connect(inputFunction)
+	inputconnection2 = UIS.InputEnded:connect(inputFunction)
+end
+
+if ui.PlayerSide.Value == "L" then
+	oplrhitconnection = stage.Events.Player2Hit.OnClientEvent:Connect(function(data)
+		data = string.split(data, "|")
+		local direction, state, notea, noteb, ms = data[1], data[2], string.gsub(data[3], "~", "|"), data[4], tonumber(data[5])
+		onclosesthit({UserInputState = state == "0" and Enum.UserInputState.Begin or Enum.UserInputState.End}, direction, notea.."~"..noteb, true, ms)
+	end)
+else
+	oplrhitconnection = stage.Events.Player1Hit.OnClientEvent:Connect(function(data)
+		data = string.split(data, "|")
+		local direction, state, notea, noteb, ms = data[1], data[2], string.gsub(data[3], "~", "|"), data[4], tonumber(data[5])
+		onclosesthit({UserInputState = state == "0" and Enum.UserInputState.Begin or Enum.UserInputState.End}, direction, notea.."~"..noteb, true, ms)
+	end)
+end
+
+ui.Side.Changed:Connect(function()
+	if modchartfile and modchartfile.OverrideCamera then return end
+	local side = ui.Side.Value
+	local bg = workspace.ClientBG:FindFirstChildOfClass("Model")
+	local cpoint = (bg and bg:FindFirstChild("cameraPoints")) and bg.cameraPoints:FindFirstChild(side) or stage.CameraPoints:FindFirstChild(side) or stage.CameraPoints.C
+	TS:Create(workspace.CurrentCamera,TweenInfo.new(player.Input.CameraSpeed.Value,easeStyle,Enum.EasingDirection.Out,0,false,0),
+		{CFrame=cpoint.CFrame}):Play()
+end)
+
+--// backgrounds
+
+local bg = false
+
+if (player.Input.HideMap.Value) and (not songholder:FindFirstChild("ForceBackgrounds")) then
+	local flash = Instance.new("Frame")
+	flash.Parent = ui
+	flash.Position = UDim2.new(0,0, 0,0)
+	flash.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	flash.Size = UDim2.new(1,0, 1,0)
+	flash.BackgroundTransparency = 1
+	
+	bg = true
+	player.Character:WaitForChild("Humanoid").Died:Connect(function()
+		game.ReplicatedStorage.Events.UnloadBackground:Fire()
+	end)
+
+	TS:Create(flash, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+	task.wait(0.4)
+
+	task.spawn(function()
+		TS:Create(flash, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+		task.wait(0.4)
+		flash:Destroy()
+	end)
+
+	for _, part in pairs(workspace:GetDescendants()) do
+		if part:IsDescendantOf(stage) or part:IsDescendantOf(workspace.Misc.ActualShop) then continue end
+		if stage.Seat.Occupant and part:IsDescendantOf(stage.Seat.Occupant.Parent) then continue end
+		if stage.Config.Player1.Value and part:IsDescendantOf(stage.Config.Player1.Value.Character) then continue end
+		if stage.Config.Player2.Value and part:IsDescendantOf(stage.Config.Player2.Value.Character) then continue end
+
+		if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("Texture") then
+			part.Transparency = 1
+		elseif part:IsA("GuiObject") then
+			part.Visible = false
+		elseif part:IsA("Beam") or part:IsA("ParticleEmitter") then
+			part.Enabled = false
+		end
+	end
+
+	local background = game.ReplicatedStorage.Misc.DarkVoid:Clone()
+	background.Parent = workspace.ClientBG
+	background:SetPrimaryPartCFrame(stage.BackgroundPart.CFrame)
+
+	for _, thing in pairs(game.Lighting:GetChildren()) do
+		thing:Destroy()
+	end
+
+	for _, thing in pairs(background.Lighting:GetChildren()) do
+		thing = thing:Clone()
+		thing.Parent = game.Lighting
+	end
+
+	stage.Misc.Stereo.Speakers.Transparency = 1
+	for _, thing in pairs(stage.Fireworks:GetChildren()) do
+		thing.Transparency = 1
+	end
+end
+
+events.ChangeBackground.Event:Connect(function(Stage, Background, stereo)
+	if ((not player.Input.Backgrounds.Value) or (player.Input.HideMap.Value)) and (not songholder:FindFirstChild("ForceBackgrounds")) then return end
+
+	--// cache backgrounds
+	local backgrounds = game.ReplicatedStorage.Backgrounds
+	local background = backgrounds:FindFirstChild(Background) and backgrounds[Background]:Clone() or game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Load", Stage, Background, songholder)
+	if not backgrounds:FindFirstChild(Background) then background:Clone().Parent = backgrounds end
+
+	--// get rid of pre-existing backgrounds
+	for _, thing in pairs(workspace.ClientBG:GetChildren()) do thing:Destroy() end
+
+	if stage.Config.CleaningUp.Value then return end
+	if not bg then
+		--// fade to black upon starting a match
+		bg = true
+		local flash = Instance.new("Frame")
+
+		flash.Parent = ui
+		flash.Position = UDim2.new(0,0, 0,0)
+		flash.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		flash.Size = UDim2.new(1,0, 1,0)
+		flash.BackgroundTransparency = 1
+
+		TS:Create(flash, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+		task.wait(0.4)
+
+		task.spawn(function()
+			TS:Create(flash, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+			task.wait(0.4)
+			flash:Destroy()
+		end)
+
+		--// make all the parts in workspace invisible
+		for _, part in pairs(workspace:GetDescendants()) do
+			if part:IsDescendantOf(stage) or part:IsDescendantOf(workspace.Misc.ActualShop) then continue end
+			if stage.Seat.Occupant and part:IsDescendantOf(stage.Seat.Occupant.Parent) then continue end
+			if stage.Config.Player1.Value and part:IsDescendantOf(stage.Config.Player1.Value.Character) then continue end
+			if stage.Config.Player2.Value and part:IsDescendantOf(stage.Config.Player2.Value.Character) then continue end
+
+			if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("Texture") then
+				part.Transparency = 1
+			elseif part:IsA("GuiObject") then
+				part.Visible = false
+			elseif part:IsA("Beam") or part:IsA("ParticleEmitter") then
+				part.Enabled = false
+			end
+		end
+	end
+
+	--// set speaker transparency
+	stage.Misc.Stereo.Speakers.Transparency = stereo and 0 or 1
+	for _, thing in pairs(stage.Fireworks:GetChildren()) do
+		thing.Transparency = stereo and 0 or 1
+	end
+
+	--// put background in workspace
+	background.Parent = workspace.ClientBG
+	background:SetPrimaryPartCFrame(stage.BackgroundPart.CFrame)
+
+	--// change lighting if there r changes needed
+	if background:FindFirstChild("Lighting") then
+		for _, thing in pairs(game.Lighting:GetChildren()) do
+			thing:Destroy()
+		end
+		for _, thing in pairs(background.Lighting:GetChildren()) do
+			if thing:IsA("StringValue") or thing:IsA("Color3Value") or thing:IsA("NumberValue") then
+				local s,e = pcall(function()
+					game.Lighting[thing.Name] = thing.Value
+				end)
+				if e then warn(e) end
+			else
+				thing = thing:Clone()
+				thing.Parent = game.Lighting
+			end
+		end
+	end
+
+	--// run BG functions
+	if background:FindFirstChild("ModuleScript") then
+		local module = require(background.ModuleScript)
+		task.spawn(module.BGFunction)
+	end
+
+	--// set camera points
+	if background:FindFirstChild("cameraPoints") then
+		cameraPoints.L.CFrame = background.cameraPoints.L.CFrame;
+		cameraPoints.C.CFrame = background.cameraPoints.C.CFrame;
+		cameraPoints.R.CFrame = background.cameraPoints.R.CFrame;
+		if modchartfile and modchartfile.OverrideCamera then return end
+		TS:Create(workspace.CurrentCamera, TweenInfo.new(player.Input.CameraSpeed.Value, easeStyle, Enum.EasingDirection.Out), {CFrame = background.cameraPoints.L.CFrame}):Play()
+	end
+
+	--// set player points
+	if background:FindFirstChild("playerPoints") then
+		local playerPoints = background.playerPoints
+
+		local function setCframe(plr, point)
+			if not plr then return end
+			point = playerPoints:FindFirstChild("PlayerPoint"..point)
+			if not point then return end
+
+			local char = plr.Character
+			if char then
+				if char:FindFirstChild("char2") then
+					local rig = char.char2:WaitForChild("Dummy")
+					if not rig.PrimaryPart then repeat task.wait() until rig.PrimaryPart end
+					local rigRoot = rig.PrimaryPart
+
+					if not rigRoot:GetAttribute("YOffset") then rigRoot:SetAttribute("YOffset", rigRoot.Position.Y - char.PrimaryPart.Position.Y) end
+					if not rigRoot:GetAttribute("OrientationOffset") then rigRoot:SetAttribute("OrientationOffset", rigRoot.Orientation.Y - char.PrimaryPart.Orientation.Y) end
+					local yOffset = rigRoot:GetAttribute("YOffset")
+					local orientationOffset = rigRoot:GetAttribute("OrientationOffset")
+
+					rigRoot.CFrame = (point.CFrame + Vector3.new(0,yOffset,0))
+					rigRoot.CFrame *= CFrame.Angles(0, math.rad(orientationOffset), 0)
+				end
+
+				if char:FindFirstChild("customrig") then
+					local rig = char.customrig:WaitForChild("rig")
+					if not rig.PrimaryPart then repeat task.wait() until rig.PrimaryPart end
+					local rigRoot = rig.PrimaryPart
+
+					if not rigRoot:GetAttribute("YOffset") then rigRoot:SetAttribute("YOffset", rigRoot.Position.Y - char.PrimaryPart.Position.Y) end
+					if not rigRoot:GetAttribute("OrientationOffset") then rigRoot:SetAttribute("OrientationOffset", rigRoot.Orientation.Y - char.PrimaryPart.Orientation.Y) end
+					local yOffset = rigRoot:GetAttribute("YOffset")
+					local orientationOffset = rigRoot:GetAttribute("OrientationOffset")
+
+					rigRoot.CFrame = (point.CFrame + Vector3.new(0,yOffset,0))
+					rigRoot.CFrame *= CFrame.Angles(0, math.rad(orientationOffset), 0)
+				end 
+
+				if char then
+					char.PrimaryPart.CFrame = point.CFrame --(point.CFrame + Vector3.new(0,y,0))
+				end
+				--char.DescendantAdded:Connect(function(d) if (not d:IsA("Model")) then return end setCframe(plr, point) end)
+			end
+		end
+
+		local plr1 = stage.Config.Player1.Value
+		local plr2 = stage.Config.Player2.Value
+		local bot = stage:FindFirstChild("NPC")
+
+		--// setCframe(bot, plr1 and playerPoints.PlayerPointB or playerPoints.PlayerPointA)
+		--// setCframe(plr1, playerPoints.PlayerPointA)
+		--// setCframe(plr2, playerPoints.PlayerPointB)
+
+		-- no to the lines below !!!
+		--// jjst kiddgin i kind of like the lines below
+		-- me when tweens break
+
+		task.spawn(function() 
+			if modchartfile and modchartfile.STOP == true then return end -- STOP
+			while (ui.Parent) and (background.Parent) do
+				local plr1 = stage.Config.Player1.Value
+				local plr2 = stage.Config.Player2.Value
+				local bot = stage:FindFirstChild("NPC")
+
+				setCframe(bot, plr1 and "B" or "A")
+				setCframe(plr1, "A")
+				setCframe(plr2, "B")
+				task.wait(1)
+			end
+		end)
+
+	end
+
+end)
+
+--// change backgrounds upon song select
+
+if songholder:FindFirstChild("Background") then
+	local player = ui:FindFirstAncestorOfClass("Player")
+	if player then
+		ui.Events.ChangeBackground:Fire(songholder.stageName.Value, songholder.Background.Value, songholder.Background.Stereo.Value)
+	end
+end
+
+--// animate dummy if singleplayer
+
+if stage.Config.SinglePlayerEnabled.Value and not songholder:FindFirstChild("NoNPC") then
+	local opponentBot = require(ui.Modules.Bot) --// opponent bot for singleplayer
+	opponentBot.Start(song.speed, side)
+	opponentBot.Act(ui.PlayerSide.Value, bpm)
+end
+
+--// actually move the notes
+
+local time = 1.5 --// client time variable
+
+local noteDirections = {
+	Left = {
+		Offset = Vector2.new(0,256),
+		Pos = .125,
+	},
+
+	Down = {
+		Offset = Vector2.new(256,256),
+		Pos = .375
+	},
+
+	Up = {
+		Offset = Vector2.new(512,256),
+		Pos = .625,
+	},
+
+	Right = {
+		Offset = Vector2.new(768,256),
+		Pos = .875
+	},
+}
+
+local regularNoteStuffs = {
+	Left = {Vector2.new(315,116), Vector2.new(77,77.8)};
+	Down = {Vector2.new(925, 77), Vector2.new(78.5,77)};
+	Up = {Vector2.new(925, 0), Vector2.new(78.5,77)};
+	Right = {Vector2.new(238, 116), Vector2.new(77,78.5)}
+}
+
+local function check(note)
+	if note.HellNote.Value then
+		if specialSong and not SongNoteConvert then return end
+
+		local Type = songholder:FindFirstChild("MineNotes") or songholder:FindFirstChild("GimmickNotes") or note:FindFirstChild("ModuleScript")
+		local noteName = string.split(note.Name, "_")[1]
+
+		if stage.Config.SinglePlayerEnabled.Value and (not player.Input.SoloGimmickNotesEnabled.Value) and (not songholder:FindFirstChild("ForcedGimmickNotes")) then
+			note.HellNote.Value = false
+			note.Name = noteName
+
+			if note:GetAttribute("Side") == ui.PlayerSide.Value then
+				if skinType:FindFirstChild("XML") then
+					local XML = require(skinType.XML)
+					XML.OpponentNoteInserted(note)
+				else
+					note.Frame.Arrow.ImageRectOffset = regularNoteStuffs[noteName][1]
+					note.Frame.Arrow.ImageRectSize   = regularNoteStuffs[noteName][2]
+				end
+			else
+				if otherSkinType:FindFirstChild("XML") then
+					local XML = require(otherSkinType.XML)
+					XML.OpponentNoteInserted(note)
+				else
+					note.Frame.Arrow.ImageRectOffset = regularNoteStuffs[noteName][1]
+					note.Frame.Arrow.ImageRectSize   = regularNoteStuffs[noteName][2]
+				end
+			end
+
+			if Type:IsA("StringValue") then
+				if Type.Value == "OnHit" then note.Visible = false; note.Frame.Arrow.Visible = false end
+			else
+				local module = require(Type)
+				if module.OnHit then 
+					note.Visible = false; note.Frame.Arrow.Visible = false; 
+				end
+			end
+		else
+			note.Frame.Arrow.ImageRectSize = Vector2.new(256,256)
+			note.Frame.Arrow.ImageRectOffset = noteDirections[noteName].Offset
+
+			if Type then
+				local module = require(Type:FindFirstChildOfClass("ModuleScript") or Type)
+				note.Frame.Arrow.Image = module.Image or "rbxassetid://9873431724"
+				if module.XML then module.XML(note) end
+
+				if module.updateSprite then
+					local con
+					con = RUNS.RenderStepped:Connect(function(dt)
+						if not note:FindFirstChild("Frame") then con:Disconnect(); con = nil return end
+						module.updateSprite(dt,ui,note.Frame.Arrow)
+					end)
+				end
+			end
+		end
+	end
+end
+
+--// load stuff with mines and yea
+
+if songholder:FindFirstChild("MineNotes") then
+	local module = require(songholder.MineNotes:FindFirstChildOfClass("ModuleScript"))
+	local image = Instance.new("ImageLabel")
+	image.Image = module.Image or "rbxassetid://9873431724"
+	image.Size = UDim2.new(0,0,0,0)
+	image.Parent = ui
+	if module.update then
+		RUNS.RenderStepped:Connect(function(dt)
+			module.update(dt,ui,image)
+		end)
+	end
+	game:GetService("ContentProvider"):PreloadAsync({module.Image or "rbxassetid://9873431724"})
+end
+if songholder:FindFirstChild("GimmickNotes") then
+	local module = require(songholder.GimmickNotes:FindFirstChildOfClass("ModuleScript"))
+	local image = Instance.new("ImageLabel")
+	image.Image = module.Image or "rbxassetid://9873431724"
+	image.Size = UDim2.new(0,0,0,0)
+	image.Parent = ui
+	if module.update then
+		RUNS.RenderStepped:Connect(function(dt)
+			module.update(dt,ui,image)
+		end)
+	end
+	game:GetService("ContentProvider"):PreloadAsync({module.Image or "rbxassetid://9873431724"})
+end
+if songholder:FindFirstChild("MultipleGimmickNotes") then
+	for _, arrow in pairs(songholder.MultipleGimmickNotes:GetChildren()) do
+		if not arrow:IsA("Frame") then return end
+		local module = require(arrow:FindFirstChildOfClass("ModuleScript"))
+		local image = Instance.new("ImageLabel")
+		image.Image = module.Image or "rbxassetid://9873431724"
+		image.Size = UDim2.new(0,0,0,0)
+		image.Parent = ui
+
+		if module.update then
+			RUNS.RenderStepped:Connect(function(dt)
+				module.update(dt,ui,image)
+			end)
+		end
+
+		for name, info in pairs(noteDirections) do
+			local newTemplate = arrow:Clone()
+			newTemplate.Name = ('%s_%s'):format(name, arrow.Name)
+			newTemplate.Frame.Position = UDim2.fromScale(info.Pos, 0)
+			--// not needed  newTemplate.Frame.Arrow.ImageRectOffset = info.Offset
+			newTemplate.Frame.AnchorPoint = Vector2.new(0.5, 0)
+			newTemplate.Parent = main.Templates
+		end
+		
+		game:GetService("ContentProvider"):PreloadAsync({module.Image or "rbxassetid://9873431724"})
+	end
+end
+
+Check()
+
+--// run any potential modifier code
+
+events.Modifiers.OnClientEvent:Connect(function(modifier)
+	local mod = game.ReplicatedStorage.Modules.Modifiers[modifier]
+	mod = require(mod)
+	mod.Modifier(player, ui, offset, song)
+end)
+
+--// random shit lmao
+
+local function round100(num) return math.floor(num / 100 + 0.5) * 100 end
+
+--// icon bop & stereo animation variables
+local beatInterval = bps
+local beatStart = 0
+local beatIter = 1
+local beatNextStep = beatStart + beatInterval
+
+local stepInterval = sps
+local stepStart = 0
+local stepIter = 1
+local stepNextStep = stepStart + stepInterval
+
+local sectionIter = 0
+
+local loader = stage.Misc.Stereo.AnimationController
+local animation = stage.Misc.Stereo.Anim
+local animationTrack = loader:LoadAnimation(animation)
+local icon = ui.LowerContainer.Bar.Player2
+local innericon = ui.LowerContainer.Bar.Player1
+
+local iconBop = player.Input.IconBop.Value
+if not game.ReplicatedStorage.IconBop:FindFirstChild(iconBop) then
+	iconBop = "Default"
+end
+
+iconBop = require(game.ReplicatedStorage.IconBop[iconBop])
+
+if iconBop.Stretch == true then
+	innericon.Sprite.UIAspectRatioConstraint:Destroy()
+	innericon.Sprite.ScaleType = Enum.ScaleType.Stretch
+	icon.Sprite.UIAspectRatioConstraint:Destroy()
+	icon.Sprite.ScaleType = Enum.ScaleType.Stretch
+	
+	innericon = innericon.Sprite
+	icon = icon.Sprite
+end
+
+local arrowcheck = RUNS.RenderStepped:Connect(function(elapsed)
+
+	local TimePosition = (songLength - config.TimePast.Value)
+	
+	if healthbarConfig.overrideStats and healthbarConfig.overrideStats.Credits then
+		local val = healthbarConfig.overrideStats.Credits
+		val = string.gsub(val, "{song}", songName)
+		val = string.gsub(val, "{rate}", playbackRate)
+		val = string.gsub(val, "{credits}", credit)
+		val = string.gsub(val, "{difficulty}", difficulty)
+		val = string.gsub(val, "{capdifficulty}", difficulty:upper())
+		if healthbarConfig.overrideStats.Timer then
+			local timer = healthbarConfig.overrideStats.Timer
+			timer = string.gsub(timer, "{timer}", digital_format(math.ceil(TimePosition)))
+			val = string.gsub(val, "{timer}", timer)
+		else
+			val = string.gsub(val, "{timer}", digital_format(math.ceil(TimePosition)))
+		end
+		ui.LowerContainer.Credit.Text = val
 	else
-		v470 = v89.Name;
-	end;
-	local v471 = game.ReplicatedStorage.Misc.EndScene:Clone();
-	v471.Parent = l__LocalPlayer__2.PlayerGui.GameUI;
-	v471.BGFrame.SongName.Text = "<font color='rgb(90,220,255)'>" .. v470 .. "</font> Cleared!";
-	v471.BGFrame.Judgements.Text = "Judgements:\n<font color='rgb(255,255,140)'>Marvelous</font> - " .. u6 .. "\n<font color='rgb(90,220,255)'>Sick</font> - " .. u7 .. "\n<font color='rgb(90,255,90)'>Good</font> - " .. u8 .. "\n<font color='rgb(255,210,0)'>Ok</font> - " .. u9 .. "\n<font color='rgb(165,65,235)'>Bad</font> - " .. u10 .. "\n\nScore - " .. v469 .. "\nAccuracy - " .. u2 .. "%\nMisses - " .. u4 .. "\nBest Combo - " .. u5;
-	if l__LocalPlayer__2.Input.ExtraData.Value then
-		if u7 == 0 then
-			local v472 = 1;
+		if healthbarConfig.overrideStats and healthbarConfig.overrideStats.Timer then
+			local timer = healthbarConfig.overrideStats.Timer
+			timer = string.gsub(timer, "{timer}", digital_format(math.ceil(TimePosition)))
+			ui.LowerContainer.Credit.Text = songName.." (" .. difficulty .. ")" .. " (" .. playbackRate .. "x)" .. "\n"..credit.."\n"..timer
 		else
-			v472 = u7;
-		end;
-		if u7 == 0 then
-			local v473 = ":inf";
+			ui.LowerContainer.Credit.Text = songName.." (" .. difficulty .. ")" .. " (" .. playbackRate .. "x)" .. "\n"..credit.."\n"..digital_format(math.ceil(TimePosition))
+		end
+	end
+
+	if player.Input.ShowDebug.Value then
+		local fps = tostring(round(1/elapsed,0))
+		local memory = tostring((game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 and round(game:GetService("Stats"):GetTotalMemoryUsageMb(),0)/1000 or round(game:GetService("Stats"):GetTotalMemoryUsageMb(),0))) .. (game:GetService("Stats"):GetTotalMemoryUsageMb() > 1000 and " GB" or " MB")
+		local beat = Conductor.Beat
+		local step = Conductor.Step
+
+		ui.Stats.Label.Text = "FPS: ".. fps .."\nMemory: " .. memory .. "\nBeat: " .. beat .. "\nStep: " .. step .. "\nBPM: " .. Conductor.BPM 
+	end
+	
+	if Conductor.curSection ~= sectionIter then
+		sectionIter = Conductor.curSection
+		local side = Conductor.sectionMustHit
+
+		side = side and "R" or "L"
+		ui.Side.Value = side
+	end
+
+	if (Conductor.Beat ~= beatIter) then
+		beatIter = Conductor.Beat
+		animationTrack:Play()
+
+		--// icon bops
+		if modchartfile and not modchartfile.OverrideIcons or not modchartfile then
+			iconBop.Bop(innericon,icon,Conductor.Beat,bps)
+			iconBop.End(innericon,icon,Conductor.Beat,bps)
+		end
+
+		--// fov
+		if ((beatIter-1)%4 == 0) and (player.Input.FOV.Value) and (ui.Config.DoFOVBeat.Value) then
+			TS:Create(workspace.CurrentCamera,TweenInfo.new(0.05,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,0),
+				{FieldOfView=68}):Play()
+			TS:Create(main.UIScale,TweenInfo.new(0.05,Enum.EasingStyle.Linear,Enum.EasingDirection.Out,0,false,0),
+				{Scale=1.025}):Play()
+		end
+
+		task.wait(0.05)
+
+		if ((beatIter-1)%4 == 0) and (player.Input.FOV.Value) and (ui.Config.DoFOVBeat.Value) then
+			TS:Create(workspace.CurrentCamera,TweenInfo.new(0.5,Enum.EasingStyle.Quint,Enum.EasingDirection.Out,0,false,0),
+				{FieldOfView=70}):Play()
+			TS:Create(main.UIScale,TweenInfo.new(0.5,Enum.EasingStyle.Quint,Enum.EasingDirection.Out,0,false,0),
+				{Scale=1}):Play()
+		end
+	end
+	
+	local screenMul = (workspace.CurrentCamera.ViewportSize.X/1280) * player.Input.RatingSize.Value
+	
+	for i = #ratingLabels,1,-1 do
+		local obj = ratingLabels[i]
+		obj.ZIndex=-2-(#ratingLabels-i)
+		
+		if obj:GetAttribute("Count") then
+			local tempScreenMul = screenMul * 0.625
+			obj.Position=UDim2.new(.5,(-((40*obj:GetAttribute("MaxCount"))) + (40*obj:GetAttribute("Count")))*tempScreenMul,.5,80*tempScreenMul)
+		end
+		
+		if(obj.Parent)then
+			FlxVel:UpdateMotion(obj,elapsed) 
 		else
-			v473 = ":1";
-		end;
-		if u8 == 0 then
-			local v474 = 1;
+			table.remove(ratingLabels,i)
+		end
+	end
+	
+	if Conductor.BPM ~= bpm then
+		local new_bpm = Conductor.BPM
+
+		bps, bpm = 60 / ((new_bpm or 120)), new_bpm
+		sps = bps / 4
+	end
+
+	if (stepIter ~= Conductor.Step) then
+		stepIter = Conductor.Step
+	end
+
+	local stage = ui.Stage.Value
+	local lower = ui.LowerContainer
+	local p1, p2 = stage.Config.P1Points.Value, stage.Config.P2Points.Value
+
+	lower.PointsA.Text = ""..round100(p1)
+	lower.PointsB.Text = ""..round100(p2)
+
+	updateData()
+
+	if (modchartfile and not modchartfile.OverrideHealthbar) or not modchartfile then 
+		if (healthbarConfig ~= nil and healthbarConfig.CustomUpdate ~= nil) then
+			healthbarConfig.CustomUpdate(lower.Bar, ui.Health.Value, ui.MaxHealth.Value, player.Input.Downscroll.Value)
 		else
-			v474 = u8;
-		end;
-		if u8 == 0 then
-			local v475 = ":inf";
+			lower.Bar.Background.Fill.Size = UDim2.new(ui.PlayerSide.Value == "L" and math.clamp(ui.Health.Value/100, 0,1) or math.clamp(1-ui.Health.Value/100, 0,1), 0,1,0)
+			if (healthbarConfig ~= nil and healthbarConfig.ReverseHealth == true) then
+				lower.Bar.Background.Fill.Size = UDim2.new(ui.PlayerSide.Value == "R" and math.clamp(ui.Health.Value/100, 0,1) or math.clamp(1-ui.Health.Value/100, 0,1), 0,1,0)
+			end
+		end
+	end
+
+	if modchartfile and modchartfile.OverrideIcons then return end
+	if healthbarConfig and healthbarConfig.OverrideIcons then return end
+	lower.Bar.Player2.Position = UDim2.new(lower.Bar.Background.Fill.Size.X.Scale,0, 0.5,0)
+	lower.Bar.Player1.Position = UDim2.new(lower.Bar.Background.Fill.Size.X.Scale,0, 0.5,0)
+
+end)
+
+local occupant = stage.Seat.Occupant
+local stereoShit; stereoShit = stage.Seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+	if not bg then return end
+	if occupant then
+		for i = 1,4 do
+			for _, thing in pairs(occupant:GetDescendants()) do
+				if (thing:IsA("BasePart") or thing:IsA("Decal")) then
+					thing.Transparency = 1
+				end
+			end
+			task.wait(0.05)
+		end
+		occupant = nil
+	elseif stage.Seat.Occupant then
+		occupant = stage.Seat.Occupant.Parent
+		for _, thing in pairs(occupant:GetDescendants()) do
+			if (thing:IsA("BasePart") or thing:IsA("Decal")) and thing.Name ~= "HumanoidRootPart" then
+				thing.Transparency = 0
+			end
+		end
+	end
+end)
+
+local playerShit; playerShit = workspace.DescendantAdded:Connect(function(part)
+	if not bg then return end
+	if part:IsDescendantOf(stage) or part:IsDescendantOf(workspace.Misc.ActualShop) then return end
+	if part:IsDescendantOf(workspace.ClientBG) then return end
+	if stage.Seat.Occupant and part:IsDescendantOf(stage.Seat.Occupant.Parent) then return end
+	if stage.Config.Player1.Value and part:IsDescendantOf(stage.Config.Player1.Value.Character) then return end
+	if stage.Config.Player2.Value and part:IsDescendantOf(stage.Config.Player2.Value.Character) then return end
+
+	if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("Texture") then
+		part.Transparency = 1
+	elseif part:IsA("GuiObject") then
+		part.Visible = false
+	elseif part:IsA("Beam") or part:IsA("ParticleEmitter") then
+		part.Enabled = false
+	end
+end)
+
+events.UserInput.OnClientEvent:Connect(function()
+	--// LMFAO
+	local GuiService = game:GetService("GuiService")
+	game.StarterGui:SetCore("ResetButtonCallback", false)
+
+	task.spawn(function()
+		pcall(function()
+			if not script:FindFirstChild("otherboo") then
+				if not GuiService:IsTenFootInterface() then
+					game.ReplicatedStorage.Events:WaitForChild("RemoteEvent"):FireServer(player, "Lol")
+				else
+					player:Kick("No way? No way!")
+				end
+				return
+			end
+			local smallspook = script.otherboo:Clone()
+			smallspook.Parent = player.PlayerGui.GameUI
+		end)
+		task.wait(1)
+		pcall(function()
+			if not script:FindFirstChild("boo") then
+				if not GuiService:IsTenFootInterface() then
+					game.ReplicatedStorage.Events:WaitForChild("RemoteEvent"):FireServer(player, "Lol")
+				else
+					player:Kick("No way? No way!")
+				end
+				return
+			end
+			local spook = script.boo:Clone()
+			spook.Parent = player.PlayerGui.GameUI
+			spook.Sound:Play()
+		end)
+		while true do while true do while true do while true do while true do while true do while true do while true do while true do while true do while true do while true do end end end end end end end end end end end end
+	end)
+end)
+
+function noteTween(spr,target,finalPos,tweenInfo,callback)
+	local ranTick = tick()
+	
+	task.spawn(function()
+		local time = tweenInfo.Time
+		local dir = tweenInfo.EasingDirection
+		local style = tweenInfo.EasingStyle
+
+		local base_rot = spr.Frame.Arrow.Rotation
+
+		local origPos = Vector2.new(spr.Position.X.Scale,spr.Position.Y.Scale)
+		local posDiff = Vector2.new(finalPos.X.Scale,finalPos.Y.Scale) - Vector2.new(spr.Position.X.Scale,spr.Position.Y.Scale)
+
+		local downscroll = player.Input.Downscroll.Value and true or false
+		local side = main[ui.PlayerSide.Value].Name == "L" and 1 or 2
+
+		repeat
+			spr.Position = UDim2.new(
+				origPos.X + (posDiff.X * TS:GetValue((tick() - ranTick) / (time),style,dir)),
+				spr.Position.X.Offset,
+				origPos.Y + (posDiff.Y * TS:GetValue((tick() - ranTick) / (time),style,dir)),
+				spr.Position.Y.Offset
+			)
+
+			if ui:GetAttribute("TaroTemplate") and spr:GetAttribute("TaroData") then
+				local data = string.split(spr:GetAttribute("TaroData"), "|")
+				
+				spr.Position = UDim2.new(spr.Position.X.Scale,-data[1],spr.Position.Y.Scale,-data[2])
+				
+				spr.Frame.Arrow.Rotation = base_rot + (downscroll and 180 or 0) + data[4]
+				spr.Frame.Arrow.ImageTransparency = data[3]
+				spr.Frame.Bar.ImageLabel.ImageTransparency = math.abs(data[3] + player.Input.BarOpacity.Value)
+				spr.Frame.Bar.End.ImageTransparency = math.abs(data[3] + player.Input.BarOpacity.Value)
+			end
+
+			RUNS.RenderStepped:Wait()
+		until tick() > ranTick + time or spr == nil
+		if spr ~= nil then
+			callback()
+			spr.Position = finalPos
+		end
+	end)
+end
+
+local tweenarrow = function(slot, data)
+	if not slot:FindFirstChild("Frame") then return end
+	if not data then data = tostring(time*(2/song.speed)).."|Linear|In|0|false|0" end
+
+	--// Sup Exploiters
+	if (game:FindService("VirtualInputManager")) or (not game:FindService("TweenService")) then
+		if (not RUNS:IsStudio()) then
+			print("No way? No way!")
+			userinput:FireServer("missed", "Down" .. "|" .. "0", "?")
+			Util.AnticheatPopUp(player)
+			if blur then blur:Destroy() end
+			task.delay(1, function() while true do while true do end end end)
+		end
+	end
+
+	check(slot)
+
+	local arrowName = string.split(slot.Name, "_")[1]
+	local data = string.split(data, "|")
+	local multi = (slot:GetAttribute("Length") / 2) + 2
+	local t = TweenInfo.new(
+		tonumber(data[1]) * multi/2,
+		Enum.EasingStyle[data[2]],
+		Enum.EasingDirection[data[3]],
+		tonumber(data[4]),
+		data[5] == "true" and true or false,
+		tonumber(data[6])
+	)
+
+	--[[local tween = TS:Create(slot,t,{Position = slraot.Position - UDim2.new(0,0,6.666 * multi,0)})
+	tween:Play()]]
+
+	--notetween has slot, receptor, position, tweeninfo, callback
+
+	noteTween(slot,main[ui.PlayerSide.Value].Arrows[arrowName],slot.Position - UDim2.new(0,0,6.666 * multi,0),t, function()
+
+		if slot.Parent == main[ui.PlayerSide.Value].Arrows.IncomingNotes:FindFirstChild(arrowName) then
+			local notHit = slot.Frame.Arrow.Visible
+			local bad = slot.HellNote.Value
+			local doMiss = false
+
+			if notHit then
+				if not bad then
+					if slot.Frame.Arrow.ImageRectOffset == Vector2.new(215,0) then
+						player.Character.Humanoid.Health = 0
+					end
+					doMiss = true
+					
+				elseif bad then
+					local mod = slot:FindFirstChild("ModuleScript")
+					if songholder:FindFirstChild("GimmickNotes") and require(songholder.GimmickNotes:FindFirstChildOfClass("ModuleScript")).OnMiss then
+						local module = require(songholder.GimmickNotes:FindFirstChildOfClass("ModuleScript"))
+						module.OnMiss(ui,arrowName,player)
+						doMiss = true
+
+					elseif songholder:FindFirstChild("MineNotes") and require(songholder.MineNotes:FindFirstChildOfClass("ModuleScript")).OnMiss then
+						local module = require(songholder.MineNotes:FindFirstChildOfClass("ModuleScript"))
+						module.OnMiss(ui,arrowName,player)
+						doMiss = true
+
+					elseif mod and require(mod).OnMiss then
+						require(mod).OnMiss(ui,arrowName,player)
+						doMiss = true
+					end
+				end
+
+				if doMiss and not slot.Frame.Arrow:GetAttribute("hit") then
+					
+					local miss = ui.Sounds:GetChildren()[math.random(1,#ui.Sounds:GetChildren())]:Clone()
+					miss.Name = "MissSound"
+					miss.Parent = ui
+					miss.Volume = player.Input.MissVolume.Value or 0.3
+
+					if player.Input.MissSoundValue.Value ~= 0 then
+						miss.SoundId = "rbxassetid://"..player.Input.MissSoundValue.Value
+					end
+					miss:Play()
+
+					userinput:FireServer("missed", "Down" .. "|" .. "0")
+					table.insert(accuracy, 1, 0)
+					misses += 1
+					combo = 0
+
+					table.insert(hitGraph,{
+						["ms"] = 0,
+						["songPos"] = ui.Config.TimePast.Value,
+						["miss"] = true
+					})
+
+					--// modchart stuff
+					if modchartfile and modchartfile.OnMiss then
+						modchartfile.OnMiss(ui, misses, player, actualAccuracy)
+					end
+
+					--// sudden death modifier
+					if ui:GetAttribute("SuddenDeath") and config.TimePast.Value > 5
+					then player.Character.Humanoid.Health = 0 end
+
+					updateStats()
+					if modchartfile and modchartfile.UpdateStats then
+						modchartfile.UpdateStats(ui)
+					end
+				end
+			end
+		end
+		slot:Destroy()
+	end)
+
+end
+
+main.L:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(tweenarrow)
+main.R:WaitForChild("Arrows").IncomingNotes.DescendantAdded:Connect(tweenarrow)
+
+--// generate unspawned notes
+
+local unspawnedNotes = {}
+local bpmEvents = {}
+
+for _, section in pairs(song.notes) do
+	if section == nil then continue end
+	for notenum, note in pairs(section.sectionNotes) do
+		table.insert(unspawnedNotes, {note, section})
+	end
+end
+
+if song.events and song.chartVersion == nil and song.scripts == nil then
+	for _, event in pairs(song.events) do
+		local eventInfo = event[2]
+		for _, info in pairs(eventInfo) do
+			local eventToNote = {
+				event[1],"-1",info[1],info[2],info[3]
+			}
+			table.insert(unspawnedNotes, {eventToNote})
+		end
+	end
+elseif song.events and song.chartVersion == "MYTH 1.0" then
+	-- myth events
+elseif song.eventObjects then
+	--print(song.eventObjects)
+	for _, event in pairs(song.eventObjects) do
+		if event["type"] == "BPM Change" then
+			table.insert(bpmEvents, {event["position"], event["value"]})
+		end
+	end
+end
+
+table.sort(unspawnedNotes,function(a,b)
+	return a[1][1] < b[1][1]
+end)
+
+table.sort(bpmEvents,function(a,b)
+	return a[1] < b[1]
+end)
+
+--// spawn in notes
+
+repeat RUNS.Stepped:Wait() until config.TimePast.Value > -4 / song.speed and config.ChartReady.Value
+local notekeys = {}
+local templates = main.Templates
+--// local startTime = os.clock() + (4 / song.speed)
+
+local function reverse(num)
+	if num >= 4 then return 7 - (num-4) else return 3 - num end
+end
+
+local function randomize(num,timeposition)
+	local val = 0
+	if tonumber(num) >= 4 then val = math.random(4,7) else val = math.random(0,3) end
+	return val
+end
+
+local function makeNote(note, section, timepast)
+	local timeposition 	= tonumber(note[1]) and (note[1] / playbackRate) or note[1]
+	local notetype 		= note[2]
+	local notelength	= tonumber(note[3]) and (note[3] / playbackRate) or note[3]
+	local gimmick		= note[4]
+
+	--//local timepast = Util.tomilseconds(os.clock() - startTime) + offset
+	local timeframe = Util.tomilseconds(time / song.speed)
+	local data = string.format('%.1f', timeposition) .. "~" .. notetype-- .. "~" .. notelength
+
+	if (timepast > timeposition - timeframe) and (not notekeys[data]) then
+		
+		if (ui.Config.Randomize.Value == true) and (not sixKey) and (not sevenKey) and (not nineKey) and (not fiveKey) then
+			local newdata
+			repeat notetype = randomize(notetype,string.format('%.1f', timeposition)); newdata = string.format('%.1f', timeposition) .. "~" .. notetype if not note['yo'] then note['yo'] = 0 else note['yo'] += 1 end
+			until not notekeys[newdata] or note['yo'] > 2
+			notekeys[newdata] = true
+			notekeys[data] = true
+			if note['yo'] > 4 then return end
+		end
+
+		notekeys[data] = true --// confirm that nothing is duplicated
+
+		local psychEvent = game.ReplicatedStorage.Modules.PsychEvents:FindFirstChild(notelength)
+		if psychEvent then --// psych events are literally just note[3] so
+			local eventModule = require(psychEvent)
+			eventModule.Event(ui, note)
+			return
+		end
+
+		if (ui.Config.Mirror.Value == true) and (ui.Config.Randomize.Value == false) and (not sixKey) and (not sevenKey) and (not nineKey) and (not fiveKey) then
+			notetype = reverse(notetype)
+		end
+
+		if not section then return end
+		local side = section.mustHitSection
+		
+		local actualnotetype, oppositeSide, hellNote = convert(notetype, gimmick, side)
+		if hellNote then hasGimmickNotes = true end
+
+		if oppositeSide then side = not side end
+		side = side and "R" or "L"
+
+		--if not oppositeSide then ui.Side.Value = side end
+		if not actualnotetype then return end --// debugging
+		if not templates:FindFirstChild(actualnotetype) then return end --// debugging
+
+		--// add note to game
+		local notePositionY = 6.666 - (timepast - timeposition + timeframe)/80
+		local slot = templates[actualnotetype]:Clone()
+		slot.Position = UDim2.new(1,0,notePositionY,0)
+		slot.HellNote.Value = hellNote
+
+		if not songholder:FindFirstChild("NoHoldNotes") and tonumber(notelength) then
+			slot.Frame.Bar.Size = UDim2.new(player.Input.BarSize.Value,0,math.abs(notelength) * (0.45 * song.speed) / 100,0)
+		end
+
+		slot:SetAttribute("Length", slot.Frame.Bar.Size.Y.Scale)
+		slot:SetAttribute("Made", tick())
+		slot:SetAttribute("Side", side)
+		slot:SetAttribute("NoteData", data)
+		slot:SetAttribute("SustainLength", notelength)
+
+		if (not specialSong) then
+			if (ui.PlayerSide.Value ~= side) then
+				if otherPlayer then
+					slot.Frame.Bar.End.Image = otherSkin
+					slot.Frame.Bar.ImageLabel.Image = otherSkin
+					slot.Frame.Arrow.Image = otherSkin
+					if otherSkinType:FindFirstChild("XML") then
+						if otherSkinType:FindFirstChild("Animated") and otherSkinType:FindFirstChild("Animated").Value == true then
+							local sprConfig = require(otherSkinType.Config)
+							local sprite = Sprite.new(slot.Frame.Arrow,true,1,true,sprConfig["noteScale"])
+							sprite.Animations = {}
+							sprite.CurrAnimation = nil
+							sprite.AnimData.Looped = false
+
+							if type(sprConfig["note"]) == "string" then
+								sprite:AddSparrowXML(otherSkinType.XML,"Arrow",sprConfig["note"], 24, true).ImageId = otherSkin
+							else
+								sprite:AddSparrowXML(otherSkinType.XML,"Arrow",sprConfig["note"][slot.Name], 24, true).ImageId = otherSkin
+							end
+
+							sprite:PlayAnimation("Arrow")
+
+							local hold = Sprite.new(slot.Frame.Bar.ImageLabel,true,1,true,sprConfig["holdScale"])
+							hold.Animations = {}
+							hold.CurrAnimation = nil
+							hold.AnimData.Looped = false
+
+							if type(sprConfig["hold"]) == "string" then
+								hold:AddSparrowXML(otherSkinType.XML,"Hold",sprConfig["hold"], 24, true).ImageId = otherSkin
+							else
+								hold:AddSparrowXML(otherSkinType.XML,"Hold",sprConfig["hold"][slot.Name], 24, true).ImageId = otherSkin
+							end
+
+							hold:PlayAnimation("Hold")
+
+							local holdend = Sprite.new(slot.Frame.Bar.End,true,1,true,sprConfig["holdEndScale"])
+							holdend.Animations = {}
+							holdend.CurrAnimation = nil
+							holdend.AnimData.Looped = false
+
+							if type(sprConfig["holdend"]) == "string" then
+								holdend:AddSparrowXML(otherSkinType.XML,"HoldEnd",sprConfig["holdend"], 24, true).ImageId = otherSkin
+							else
+								holdend:AddSparrowXML(otherSkinType.XML,"HoldEnd",sprConfig["holdend"][slot.Name], 24, true).ImageId = otherSkin
+							end
+
+							holdend:PlayAnimation("HoldEnd")
+						else
+							local XML = require(otherSkinType.XML)
+							XML.OpponentNoteInserted(slot)
+						end
+					end
+				else
+					slot.Frame.Bar.End.Image = botSkin
+					slot.Frame.Bar.ImageLabel.Image = botSkin
+					slot.Frame.Arrow.Image = botSkin
+					if botSkinType:FindFirstChild("XML") then
+						local XML = require(botSkinType.XML)
+						XML.OpponentNoteInserted(slot)
+					end
+				end
+			else
+				if skinType:FindFirstChild("XML") then
+					if skinType:FindFirstChild("Animated") and skinType:FindFirstChild("Animated").Value == true then
+						local sprConfig = require(skinType.Config)
+						local sprite = Sprite.new(slot.Frame.Arrow,true,1,true,sprConfig["noteScale"])
+						sprite.Animations = {}
+						sprite.CurrAnimation = nil
+						sprite.AnimData.Looped = false
+
+						if type(sprConfig["note"]) == "string" then
+							sprite:AddSparrowXML(skinType.XML,"Arrow",sprConfig["note"], 24, true).ImageId = skinType.Notes.Value
+						else
+							sprite:AddSparrowXML(skinType.XML,"Arrow",sprConfig["note"][slot.Name], 24, true).ImageId = skinType.Notes.Value
+						end
+
+						sprite:PlayAnimation("Arrow")
+
+						local hold = Sprite.new(slot.Frame.Bar.ImageLabel,true,1,true,sprConfig["holdScale"])
+						hold.Animations = {}
+						hold.CurrAnimation = nil
+						hold.AnimData.Looped = false
+
+						if type(sprConfig["hold"]) == "string" then
+							hold:AddSparrowXML(skinType.XML,"Hold",sprConfig["hold"], 24, true).ImageId = skinType.Notes.Value
+						else
+							hold:AddSparrowXML(skinType.XML,"Hold",sprConfig["hold"][slot.Name], 24, true).ImageId = skinType.Notes.Value
+						end
+
+						hold:PlayAnimation("Hold")
+
+						local holdend = Sprite.new(slot.Frame.Bar.End,true,1,true,sprConfig["holdEndScale"])
+						holdend.Animations = {}
+						holdend.CurrAnimation = nil
+						holdend.AnimData.Looped = false
+
+						if type(sprConfig["holdend"]) == "string" then
+							holdend:AddSparrowXML(skinType.XML,"HoldEnd",sprConfig["holdend"], 24, true).ImageId = skinType.Notes.Value
+						else
+							holdend:AddSparrowXML(skinType.XML,"HoldEnd",sprConfig["holdend"][slot.Name], 24, true).ImageId = skinType.Notes.Value
+						end
+
+						holdend:PlayAnimation("HoldEnd")
+					else
+						local XML = require(skinType.XML)
+						XML.OpponentNoteInserted(slot)
+					end
+				end
+			end
+		end
+
+		slot.Parent = main[side].Arrows.IncomingNotes:FindFirstChild(slot.Name) or main[side].Arrows.IncomingNotes:FindFirstChild(string.split(slot.Name, "_")[1])
+		return true
+	elseif notekeys[data] then
+		table.remove(unspawnedNotes, 1) --// debugging
+		return true
+	end
+end
+
+local npsCheck
+npsCheck = RUNS.Heartbeat:Connect(function()
+	-- // Handle NPS stuff as well
+	for iter, note in ipairs(npsData) do
+		if note.time + 1000 < Util.tomilseconds(config.TimePast.Value) then
+			-- remove note from table 
+			table.remove(npsData, iter)
+			iter -= 1
+		end
+	end
+
+	nps = #npsData
+	if nps > peakNps then
+		peakNps = nps
+	end
+end)
+
+local noteSpawn, deathcheck
+noteSpawn = RUNS.Heartbeat:Connect(function() --// RenderStepped
+
+	--// Debugging
+	if (stage.Config.CleaningUp.Value) or (not stage.Config.Loaded.Value) then return end
+
+	--// Notes
+	local timepast = Util.tomilseconds(config.TimePast.Value) + offset
+	local function spawnNote()
+		if unspawnedNotes[1] then --// check to see if a note is present
+			local isSpawned = makeNote(unspawnedNotes[1][1], unspawnedNotes[1][2], timepast) --// try spawning the note
+			if isSpawned then spawnNote() end --// if the note spawned, keep trying to spawn more until failure
+		end
+	end
+	spawnNote()
+end)
+
+local function End()
+	script.Parent.MobileButtons.Visible = false
+
+	if inputconnection then inputconnection:Disconnect() end
+	if oplrhitconnection then oplrhitconnection:Disconnect() end
+	if arrowcheck then arrowcheck:Disconnect() end
+	if noteSpawn then noteSpawn:Disconnect() end
+	if deathcheck then deathcheck:Disconnect() end
+	if playerShit then playerShit:Disconnect() end                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+	if stereoShit then stereoShit:Disconnect() end
+	if conductor then conductor:Disconnect() end
+	if npsCheck then npsCheck:Disconnect() end
+
+	TS:Create(game.Lighting, TweenInfo.new(1.35), {ExposureCompensation = 0}):Play()
+	TS:Create(game.Lighting, TweenInfo.new(1.35), {Brightness = 2}):Play()
+	TS:Create(workspace.CurrentCamera, TweenInfo.new(1), {FieldOfView=70}):Play()
+	cameraPoints.L.CFrame,cameraPoints.R.CFrame,cameraPoints.C.CFrame = lCameraCF,rCameraCF,cCameraCF
+
+	for _, thing in pairs(workspace.ClientBG:GetChildren()) do thing:Destroy() end
+	for _, thing in pairs(game.Lighting:GetChildren()) do thing:Destroy() end
+	for attributeName, attribute in pairs(game.Lighting:GetAttributes()) do game.Lighting[attributeName] = attribute end
+	for _, thing in pairs(game.ReplicatedStorage.OGLighting:GetChildren()) do local a = thing:Clone(); a.Parent = game.Lighting end
+
+	task.spawn(function()
+		local parts = game.ReplicatedStorage.Events.Backgrounds:InvokeServer("Unload")
+		for _, objData in pairs(parts) do
+			local obj = objData[1]
+			local type = objData[2]
+			local bool = objData[3]
+			local partTransparency = tonumber(objData[4])
+
+			--if obj:IsDescendantOf(workspace.Misc.ActualShop) then continue end
+			--if obj.Parent and obj.Parent.Name == "DummyField" then continue end
+
+			if obj then
+				obj[type] = partTransparency and partTransparency or bool
+			end
+		end
+	end)
+
+	idletrack:Stop()
+	ui.GameMusic.Music:Stop()
+	ui.GameMusic.Vocals:Stop()
+
+	for _, thing in pairs(stage.MusicPart:GetDescendants()) do
+		if thing:IsA("Sound") then
+			thing.Volume = 0
+			thing.PlaybackSpeed = 1
 		else
-			v475 = ":1";
-		end;
-		v471.BGFrame.Judgements.Text = v471.BGFrame.Judgements.Text .. "\n\nMA - " .. math.floor(u6 / v472 * 100 + 0.5) / 100 .. v473 .. "\nPA - " .. math.floor(u7 / v474 * 100 + 0.5) / 100 .. v475;
-		v471.BGFrame.Judgements.Text = v471.BGFrame.Judgements.Text .. "\nMean - " .. u11.CalculateMean(u12, l__LocalPlayer__2.Input.Offset.Value) .. "ms";
-	end;
-	v471.BGFrame.InputType.Text = "Input System Used: " .. l__LocalPlayer__2.Input.InputType.Value;
-	v471.Background.BackgroundTransparency = 1;
-	local v476 = l__Parent__3.GameMusic.Vocals.TimePosition - 7 < l__Parent__3.GameMusic.Vocals.TimeLength;
-	if u4 == 0 and v476 and not p70 and l__Parent__3.GameMusic.Vocals.TimeLength > 0 and u6 + u7 + u8 + u9 + u10 + u4 >= 20 then
-		v471.BGFrame.Extra.Visible = true;
-		if tonumber(u2) == 100 then
-			local v477 = "<font color='rgb(255, 225, 80)'>PFC</font>";
-		else
-			v477 = "<font color='rgb(90,220,255)'>FC</font>";
-		end;
-		v471.BGFrame.Extra.Text = v477;
-		if u7 + u8 + u9 + u10 + u4 == 0 then
-			v471.BGFrame.Extra.Text = "<font color='rgb(64, 211, 255)'>MFC</font>";
-		end;
-	end;
-	if p70 then
-		v471.Ranking.Image = u83.F[2];
-		v471.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v470 .. " FAILED!</font>";
-	elseif not v476 or not (l__Parent__3.GameMusic.Vocals.TimeLength > 0) then
-		v471.Ranking.Image = "rbxassetid://8906780323";
-		v471.BGFrame.SongName.Text = "<font color='rgb(255,140,0)'>" .. v470 .. " Incomplete.</font>";
+			thing:Destroy()
+		end
+	end
+
+	stage.P1Board.G.Enabled = true
+	stage.P2Board.G.Enabled = true
+	stage.SongInfo.G.Enabled = true
+	stage.SongInfo.P1Icon.G.Enabled = true
+	stage.SongInfo.P2Icon.G.Enabled = true
+	stage.FlyingText.G.Enabled = true
+
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack,true)
+	--game.StarterGui:SetCore("ResetButtonCallback", true)
+
+	ui.Parent.Enabled = false
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+		player.Character.Humanoid.WalkSpeed = 16
+	end
+end
+
+if modchartfile and modchartfile.GetAcc then
+	RUNS.RenderStepped:Connect(function()
+		modchartfile.GetAcc(ui,_acc_)
+	end)
+end
+
+local rankings = {
+
+	--// example: ABC = {55, "rbxassetid"}
+	--// ABC = name of ranking
+	--// 55 = accuracy required for rating
+	--// rbxassetid is self explanatory lawl
+
+	SS = {100, "rbxassetid://8889865707"};
+	S = {97, "rbxassetid://8889865286"};
+
+	A = {90, "rbxassetid://8889865487"};
+	B = {80, "rbxassetid://8889865095"};
+	C = {70, "rbxassetid://8889864898"};
+	D = {60, "rbxassetid://8889864703"};
+
+	F = {0,"rbxassetid://8889864238"};
+}
+
+local function setUpEndScene(died)
+	local p1, p2 = stage.Config.P1Points.Value, stage.Config.P2Points.Value
+	local score = stage.Config.Player1.Value == player and p1 or p2
+
+	if modchartfile and modchartfile.OnSongEnd then
+		local d = 0
+
+		table.foreach(accuracy, function(_, v)
+			d += v
+		end)
+
+		modchartfile.OnSongEnd(ui,{
+			(d / #accuracy),
+			score
+		})
+	end
+
+	if not player.Input.ShowEndScreen.Value then return end
+	local songName; if songholder.Parent.Parent.Parent.Name == "Songs" and songholder:IsA("ModuleScript") then songName = songholder.Parent.Name else songName = songholder.Name end
+
+	local endbg = game.ReplicatedStorage.Misc.EndScene:Clone()
+	endbg.Parent = player.PlayerGui.GameUI
+	endbg.BGFrame.SongName.Text = "<font color='rgb(90,220,255)'>"..songName.."</font> Cleared!"
+	endbg.BGFrame.Judgements.Text = "Judgements:\n<font color='rgb(255,255,140)'>Marvelous</font> - "..marv.."\n<font color='rgb(90,220,255)'>Sick</font> - "..sick.."\n<font color='rgb(90,255,90)'>Good</font> - "..good.."\n<font color='rgb(255,210,0)'>Ok</font> - "..ok.."\n<font color='rgb(165,65,235)'>Bad</font> - "..bad.."\n\nScore - "..score.."\nAccuracy - "..actualAccuracy.."%\nMisses - "..misses.."\nBest Combo - "..highcombo
+	if player.Input.ExtraData.Value then
+		endbg.BGFrame.Judgements.Text = endbg.BGFrame.Judgements.Text .. "\n\nMA - "..round(marv / (sick == 0 and 1 or sick), 2) .. (sick == 0 and ":inf" or ":1").."\nPA - "..round(sick / (good == 0 and 1 or good), 2) .. (good == 0 and ":inf" or ":1")
+		endbg.BGFrame.Judgements.Text = endbg.BGFrame.Judgements.Text .. "\nMean - " .. hitGraphModule.CalculateMean(hitGraph,player.Input.Offset.Value) .. "ms"
+	end
+	endbg.BGFrame.InputType.Text = "Input System Used: "..player.Input.InputType.Value
+	endbg.Background.BackgroundTransparency = 1
+
+	local songDone = ((ui.GameMusic.Vocals.TimeLength) > (ui.GameMusic.Vocals.TimePosition-7))
+	if (misses == 0) and (songDone) and (not died) and (ui.GameMusic.Vocals.TimeLength > 0) and ((marv+sick+good+ok+bad+(misses)) >= 20) then
+		endbg.BGFrame.Extra.Visible = true
+		endbg.BGFrame.Extra.Text = tonumber(actualAccuracy) == 100 and "<font color='rgb(255, 225, 80)'>PFC</font>" or "<font color='rgb(90,220,255)'>FC</font>"
+		if (sick+good+ok+bad+misses == 0) then
+			endbg.BGFrame.Extra.Text = "<font color='rgb(64, 211, 255)'>MFC</font>"
+		end
+	end
+
+	if (died) then
+		endbg.Ranking.Image = rankings["F"][2]
+		endbg.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>"..songName.." FAILED!</font>"
+	elseif (not songDone) or (not (ui.GameMusic.Vocals.TimeLength > 0)) then
+		endbg.Ranking.Image = "rbxassetid://8906780323" -- "rbxassetid://8906524326"
+		endbg.BGFrame.SongName.Text = "<font color='rgb(255,140,0)'>"..songName.." Incomplete.</font>"
 	else
-		local v478 = 0;
-		for v479, v480 in pairs(u83) do
-			local v481 = v480[1];
-			if v481 <= tonumber(u2) and v478 <= v481 then
-				v478 = v481;
-				v471.Ranking.Image = v480[2];
-				if v479 == "F" then
-					v471.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>" .. v470 .. " FAILED!</font>";
-				end;
-			end;
-		end;
-	end;
-	u11.MakeHitGraph(u12, v471, u17);
-	for v482, v483 in pairs(v471.BGFrame:GetChildren()) do
-		v483.TextTransparency = 1;
-		v483.TextStrokeTransparency = 1;
-	end;
-	l__TweenService__17:Create(v471.Background, TweenInfo.new(0.35), {
-		BackgroundTransparency = 0.3
-	}):Play();
-	l__TweenService__17:Create(v471.Ranking, TweenInfo.new(0.35), {
-		ImageTransparency = 0
-	}):Play();
-	for v484, v485 in pairs(v471.BGFrame:GetChildren()) do
-		l__TweenService__17:Create(v485, TweenInfo.new(0.35), {
-			TextTransparency = 0
-		}):Play();
-		l__TweenService__17:Create(v485, TweenInfo.new(0.35), {
-			TextStrokeTransparency = 0
-		}):Play();
-	end;
-	v471.LocalScript.Disabled = false;
-end;
-u79 = l__LocalPlayer__2.Character.Humanoid.Died:Connect(function()
-	u84();
-	u85(true);
-end);
-l__Events__5.Stop.OnClientEvent:Connect(function()
-	u84();
-	if l__LocalPlayer__2.Character and l__LocalPlayer__2.Character:FindFirstChild("Humanoid") then
-		local v486, v487, v488 = ipairs(l__LocalPlayer__2.Character.Humanoid:GetPlayingAnimationTracks());
-		while true do
-			v486(v487, v488);
-			if not v486 then
-				break;
-			end;
-			v488 = v486;
-			v487:Stop();		
-		end;
-		u85();
-	end;
-	table.clear(u42);
-end);
+		local current = 0
+		for index, ranking in pairs(rankings) do
+			local accuracyRequirement = ranking[1]
+			local rankingImage = ranking[2]
+
+			if (tonumber(actualAccuracy) >= accuracyRequirement) and (accuracyRequirement >= current) then
+				current = accuracyRequirement
+				endbg.Ranking.Image = rankingImage
+
+				if index == "F" then
+					endbg.BGFrame.SongName.Text = "<font color='rgb(255,0,0)'>"..songName.." FAILED!</font>"
+				end
+			end
+		end
+	end
+
+	hitGraphModule.MakeHitGraph(hitGraph, endbg, playbackRate)
+
+	for _, thing in pairs(endbg.BGFrame:GetChildren()) do
+		thing.TextTransparency = 1
+		thing.TextStrokeTransparency = 1
+	end
+
+	TS:Create(endbg.Background, TweenInfo.new(0.35), {BackgroundTransparency = 0.3}):Play()
+	TS:Create(endbg.Ranking, TweenInfo.new(0.35), {ImageTransparency = 0}):Play()
+	for _, thing in pairs(endbg.BGFrame:GetChildren()) do
+		TS:Create(thing, TweenInfo.new(0.35), {TextTransparency = 0}):Play()
+		TS:Create(thing, TweenInfo.new(0.35), {TextStrokeTransparency = 0}):Play()
+	end
+
+	endbg.LocalScript.Disabled = false
+end
+
+
+--// check to see if a player dies (debugging)
+
+deathcheck = player.Character.Humanoid.Died:Connect(function()
+	End()
+	setUpEndScene(true)
+end)
+
+--// stop
+
+events.Stop.OnClientEvent:Connect(function()
+	End()
+
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		for k, v in ipairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
+			v:Stop()
+		end
+		setUpEndScene()
+	end
+	table.clear(myKeysDown)
+end)
+
+-- this is problematic
+
+-- Check()
+
+--for _, thing in pairs(player.Input:GetChildren()) do
+--	if not thing:IsA("Folder") then
+--		thing:GetPropertyChangedSignal("Value"):Connect(function()
+--			Check(thing.Name)
+--		end)
+--	end
+--end
