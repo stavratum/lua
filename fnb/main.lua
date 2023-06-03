@@ -28,6 +28,7 @@ local Offsets = {
 
 local VirtualInputManager = (getvirtualinputmanager or game.GetService)(game, "VirtualInputManager")
 local InputService = game:GetService "UserInputService"
+local HttpService = game:GetService "HttpService"
 local RunService = game:GetService "RunService"
 local Players = game:GetService "Players"
 
@@ -36,8 +37,9 @@ local PlayerGui = Client.PlayerGui
 
 local set_identity = (syn and syn.set_thread_identity or setidentity or setthreadcontext)
 local random = (meth and meth or math).random
-local pairs = pairs
 local ipairs = ipairs
+local pairs = pairs
+local type = type
 
 local get_signal_function, Roll do 
     get_signal_function = function(Signal, Target)
@@ -80,7 +82,7 @@ local TEMP = Connections:Open("TEMP")
 
 local function onChildAdded(Object)
     if (not Object) then return end
-    if (Object.name ~= "FNFEngine") then return end
+    if (tostring(Object) ~= "FNFEngine") then return end
     
     Object = Object:WaitForChild("Engine")
     TEMP:Clear()
@@ -126,11 +128,21 @@ local function onChildAdded(Object)
             end
         end
     end
+
+    local gc = getgc(true)
+    local rawget = rawget
+
+    for i = 1, #gc do local v = gc[i]
+        if type(v) == "table" and rawget(v, "song") then
+            SongData = v
+            break
+        end
+    end
     
     PBSpeed = Object.Config.PlaybackSpeed.Value
     Song = Stage.Config.Song.Value
-    SongData = Util.getSong(Song)
     SongOffset = Find("Offset")
+    SongData = Object.Events.GetLibraryChart:InvokeServer()
     convert = require(Object.Modules.Functions).notetypeconvert
     
     local Offset = Client.Input.Offset.Value + SongOffset.Value
@@ -224,7 +236,7 @@ local function onChildAdded(Object)
 end
 
 MAIN:Insert(PlayerGui.ChildAdded, onChildAdded)
-task.spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine")
+spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine")
 
 local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
     local Configuration = Window:AddFolder("Config") do 
