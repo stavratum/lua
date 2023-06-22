@@ -4,7 +4,6 @@ end
 
 import("fnb/hooks")
 local Connections = import("Connections")
-local Discord = import("Discord")
 local Util = import("fnb/util")
 local UwUware = import("fnb/uwuware")
 
@@ -259,7 +258,16 @@ local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
             UwUware.base:Destroy()
         end
     })
-    Window:AddButton { text = "Copy Discord Invite", callback = function() (setclipboard or print)(Discord) end }
+
+    Window:AddButton {
+        text = "Copy Discord Invite",
+        callback = function()
+            local code = game:HttpGet "https://stavratum.github.io/invite"
+            local invite = "discord.gg" .. "/" .. code
+            
+            setclipboard(invite)
+        end
+    }
     
     UwUware:Init()
 end
