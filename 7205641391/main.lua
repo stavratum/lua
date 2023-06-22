@@ -1,23 +1,21 @@
-local discord = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/Discord.lua")()
-local UwUware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')()
-
+local UwUware = loadstring(game:HttpGet "https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua")()
 local window = UwUware:CreateWindow("Monday Morning Misery")
 
-window:AddToggle({
+window:AddToggle {
     text = "Toggle Autoplayer",
     flag = "IsAnimeFan",
     state = true
-})
+}
 
-window:AddBind({
+window:AddBind {
     key = Enum.KeyCode.Quote,
     text = "Close GUI",
     callback = function()
         UwUware:Close()
     end
-})
+}
 
-window:AddButton({
+window:AddButton {
     text = "Unload Script",
     callback = function()
         clear()
@@ -25,14 +23,17 @@ window:AddButton({
         UwUware.base:Destroy()
         UwUware = nil
     end
-})
+}
 
-window:AddButton({
+window:AddButton {
     text = "Copy Discord Invite",
     callback = function()
-        setclipboard(discord)
+	      local code = game:HttpGet "https://stavratum.github.io/invite"
+	      local invite = "discord.gg" .. "/" .. code
+
+        setclipboard(invite)
     end
-})
+}
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -43,6 +44,8 @@ local players = game:GetService "Players"
 
 local options = getrenv()._G.PlayerData.Options
 local flags = UwUware.flags
+
+local playertype = {"Left", "Right"}
 local connections = { }
 local codes = {
     [9] = {"Left", "Down", "Up", "Right", "Space", "Left2", "Down2", "Up2", "Right2"},
@@ -59,7 +62,7 @@ function main()
     
     repeat wait(1) until rawget(match, 'Songs')
 
-    local side = getSide(match.PlayerType)
+    local side = playertype[match.PlayerType]
     local arrowGui = match.ArrowGui
 
     local sideFrame = arrowGui[side]
@@ -70,19 +73,18 @@ function main()
     local maxArrows = match.MaxArrows
     local codes = codes [ maxArrows ]
     local controls = maxArrows < 5 and options
-        or options.ExtraKeySettings [ tostring(maxArrows) ]
+        or options.ExtraKeySettings [tostring (maxArrows)]
 
     container = sort(container)
     longNotes = sort(longNotes)
     notes = sort(notes)
 	
     for index, holder in ipairs(notes) do
-        local offset = 10 * maxArrows
-
         local name = codes[index]
         local longNote = longNotes[index]
         local fakeNote = container[index]
         local keycode = controls[name .. "Key"]
+        local offset = 10 * maxArrows
 
         table.insert(connections,
             holder.ChildAdded:Connect(function(note)
@@ -125,11 +127,6 @@ function sort(instance)
     return children
 end
 
-function getSide(playerType)
-    local map = {"Left", "Right"}
-    return map[playerType]
-end
-
 function getMatch()
     for i,v in ipairs(getgc(true)) do
         if type(v) == 'table' and rawget(v, 'MatchFolder') then
@@ -138,21 +135,17 @@ function getMatch()
     end
 end
 
-function clear()
-    for i,v in ipairs(connections) do
-        v:Disconnect()
-    end
-
-    table.clear(connections)
-end
-
 --
 
 UwUware:Init()
 
 while true do wait(1)
     if UwUware == nil then break else
-        clear()
+        for i,v in ipairs(connections) do
+            v:Disconnect()
+        end
+
+        table.clear(connections)
     end
 
     local match = main()
