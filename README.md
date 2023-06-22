@@ -1,9 +1,3 @@
-# MMM and FNB autoplayers
-Features:
-- Signal based
-- Undetectable by games anticheat
-- Unpatchable by developers
-
-Made by AFC (stavratum#3500 and cup#7282)
+Made by AFC (@stavratum, @closecup)
 
 Discord: https://discord.gg/afc
