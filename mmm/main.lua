@@ -1,6 +1,4 @@
-local discord = loadstring(game:HttpGet"https://raw.githubusercontent.com/stavratum/lua/main/Discord.lua")()
-local UwUware = loadstring(game:HttpGet'https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua')()
-
+local UwUware = loadstring(game:HttpGet "https://raw.githubusercontent.com/OPENCUP/random-texts/main/ui.lua")()
 local window = UwUware:CreateWindow("Monday Morning Misery")
 
 window:AddToggle({
@@ -30,7 +28,10 @@ window:AddButton({
 window:AddButton({
     text = "Copy Discord Invite",
     callback = function()
-        setclipboard(discord)
+	local code = game:HttpGet "https://stavratum.github.io/invite"
+	local invite = "discord.gg" .. "/" .. code
+
+        setclipboard(invite)
     end
 })
 
