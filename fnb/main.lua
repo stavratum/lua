@@ -1,13 +1,17 @@
+-- 
+-- 2025: as of now, this script is so dead and all executors are pretty much dead i didn't see anything cool or inspiring in roblox exploiting so far so there will never be a comeback. we didn't even get 90% of functionality we had in ages of synapse x
+-- u can report some issues to my discord mayber but i will probabl unfriend you anyway since i dont wanna maintain this anymore and don't have an executor installed. cant even believe some people still use this script to this day
+--
+
 local function import(s)
-    return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%s.lua"):format(s) ))()
+    return loadstring(game:HttpGet( ("https://raw.githubusercontent.com/stavratum/lua/main/%d/%s.lua"):format(game.PlaceId, s) ))()
 end
 
-import("fnb/hooks")
-local Connections = import("Connections")
-local Util = import("fnb/util")
-local UwUware = import("fnb/uwuware")
+local _       = import("hooks")
+local Util    = import("util")
+local UwUware = import("uwuware")
 
-local Flags = UwUware.flags
+local Flags   = UwUware.flags
 local Chances = {
     Marvelous = 100,
     Sick = 0,
@@ -35,7 +39,7 @@ local Client = Players.LocalPlayer
 local PlayerGui = Client.PlayerGui
 
 local set_identity = (syn and syn.set_thread_identity or setidentity or setthreadcontext)
-local random = (meth and meth or math).random
+local random = math.random
 local ipairs = ipairs
 local pairs = pairs
 local type = type
@@ -75,16 +79,22 @@ local get_signal_function, Roll do
     end
 end
 
-local MAIN = Connections:Open("MAIN")
-local TEMP = Connections:Open("TEMP")
-
+-- connections
+local onChildAddedCon
+local onRenderSteppedCons = {}
 
 local function onChildAdded(Object)
     if (not Object) then return end
     if (tostring(Object) ~= "FNFEngine") then return end
+
+    for _, con in ipairs(onRenderSteppedCons) do
+        con:Disconnect()
+    end
+    table.clear(onRenderSteppedCons)
     
-    Object = Object:WaitForChild("Engine")
-    TEMP:Clear()
+    onRenderSteppedCon:Disconnect()
+    
+    Object = Object:WaitForChild "Engine"
     
     local convert
     local spawn = task.spawn
@@ -150,7 +160,6 @@ local function onChildAdded(Object)
     for _, connection in ipairs(getconnections(Object.Events.UserInput.OnClientEvent)) do 
         connection:Disable()
     end
-    
     
     for Index, Note in ipairs(Util.parse( SongData )) do
         local Note_1 = Note[1]
@@ -230,15 +239,15 @@ local function onChildAdded(Object)
             end
         end
         
-        TEMP:Insert(RunService.RenderStepped, Check)
+        onRenderSteppedCons[#onRenderSteppedCons + 1] = RunService.RenderStepped:Connect(Check)
     end
 end
 
-MAIN:Insert(PlayerGui.ChildAdded, onChildAdded)
-spawn(onChildAdded, PlayerGui:FindFirstChild"FNFEngine")
+onChildAddedCon = PlayerGui.ChildAdded:Connect(onChildAdded)
+spawn(onChildAdded, PlayerGui:FindFirstChild "FNFEngine")
 
 local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
-    local Configuration = Window:AddFolder("Config") do 
+    local Configuration = Window:AddFolder "Config" do 
         Configuration:AddSlider { text = "% Marvelous", min = 0, max = 100, value = Chances.Marvelous, callback = function(v) Chances.Marvelous = v end }
         Configuration:AddSlider { text = "% Sick", min = 0, max = 100, value = Chances.Sick, callback = function(v) Chances.Sick = v end }
         Configuration:AddSlider { text = "% Good", min = 0, max = 100, value = Chances.Good, callback = function(v) Chances.Good = v end }
@@ -253,27 +262,23 @@ local Window = UwUware:CreateWindow "Friday Night Bloxxin'" do
     Window:AddButton({
         text = "Unload Script",
         callback = function()
+            for _, con in ipairs(onRenderSteppedCons) do
+                con:Disconnect()
+            end
+            table.clear(onRenderSteppedCons)
+
+            onChildAddedCon:Disconnect()
+
             set_identity(7)
-            Connections:Destroy()
             UwUware.base:Destroy()
         end
     })
 
-    Window:AddButton {
-        text = "Copy Discord Invite",
-        callback = function()
-            local code = game:HttpGet "https://stavratum.github.io/invite"
-            local invite = "discord.gg" .. "/" .. code
-            
-            setclipboard(invite)
-        end
-    }
-    
     UwUware:Init()
 end
 
 --
 
 if Client.Input.Keybinds.R4.Value == ";" then
-    game:GetService("ReplicatedStorage").Events.RemoteEvent:FireServer("Input", "Semicolon", "R4")
+    game:GetService "ReplicatedStorage".Events.RemoteEvent:FireServer("Input", "Semicolon", "R4")
 end
