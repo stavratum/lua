@@ -1,1 +1,1 @@
-Discord: https://stavratum.github.io/
+2025: not maintaned anymore
