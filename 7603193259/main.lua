@@ -92,8 +92,6 @@ local function onChildAdded(Object)
     end
     table.clear(onRenderSteppedCons)
     
-    onRenderSteppedCon:Disconnect()
-    
     Object = Object:WaitForChild "Engine"
     
     local convert
